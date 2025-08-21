@@ -14,8 +14,8 @@ exports.handler = async (event, context) => {
       price: process.env.STRIPE_PRICE_ID,
       quantity: 1,
     }],
-    success_url: `${process.env.SITE_URL}/`, // Uses your SITE_URL variable
-    cancel_url: `${process.env.SITE_URL}/`,  // Uses your SITE_URL variable
+    success_url: `${process.env.SITE_URL}/`,
+    cancel_url: `${process.env.SITE_URL}/`,
     client_reference_id: user.sub,
     customer_email: user.email,
   });
@@ -24,5 +24,4 @@ exports.handler = async (event, context) => {
     statusCode: 200,
     body: JSON.stringify({ sessionId: session.id }),
   };
-
 };
