@@ -1,5 +1,3 @@
-// --- START OF FILE auth.js ---
-
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
 let auth0 = null;
@@ -9,9 +7,7 @@ const config = {
   clientId: "JAalDOGJTf1TsaBXdQUdKSyOgNT6qZr5",
   authorizationParams: {
     redirect_uri: window.location.origin,
-    // -- THIS IS THE CRITICAL LINE TO ADD --
-    // It tells Auth0 to create a token that Netlify Functions can verify.
-    audience: "https://spreadsheetsimplicity.com" 
+    audience: "https://spreadsheetsimplicity.netlify.app" 
   }
 };
 
@@ -30,6 +26,10 @@ async function handleSubscription() {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
+      }
 
       const { sessionId } = await response.json();
       const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA'); 
@@ -100,12 +100,10 @@ export async function protectPage() {
         if (accessLoginButton) {
             if (isAuthenticated) {
                 accessLoginButton.textContent = 'Upgrade to Pro';
-                accessLoginButton.onclick = () => window.location.href = '/';
+                accessLoginButton.onclick = () => window.location.href = '/'; 
             } else {
                 accessLoginButton.addEventListener('click', () => auth0.loginWithRedirect());
             }
         }
     }
 }
-// --- END OF FILE auth.js ---
-
