@@ -11,7 +11,7 @@ const config = {
     redirect_uri: window.location.origin,
     // -- THIS IS THE CRITICAL LINE TO ADD --
     // It tells Auth0 to create a token that Netlify Functions can verify.
-    audience: "https://spreadsheetsimplicity.netlify.app" 
+    audience: "https://spreadsheetsimplicity.com" 
   }
 };
 
@@ -108,3 +108,4 @@ export async function protectPage() {
     }
 }
 // --- END OF FILE auth.js ---
+
