@@ -1,4 +1,4 @@
-// --- START OF FILE auth.js ---
+// --- START OF FILE auth.js (Simplified Redirect) ---
 
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
@@ -6,12 +6,9 @@ let auth0 = null;
 
 const config = {
   domain: "dev-m4nracli6jswxp7v.us.auth0.com",
-  
-  // This uses the Client ID for your "Spreadsheet Simplicity" Single Page App
-  clientId: "JAa1D0GJTf1TsaBXdQUdKSy0gNT6qZr5", 
-
+  clientId: "JAa1D0GJTf1TsaBXdQUdKSyOgNT6qZr5", 
   authorizationParams: {
-    // We removed redirect_uri to let the SDK handle returning to the correct page
+    redirect_uri: window.location.origin, // We are putting this back for explicit control.
     audience: "https://spreadsheetsimplicity.netlify.app" 
   }
 };
@@ -27,20 +24,13 @@ async function handleSubscription() {
       const token = await auth0.getTokenSilently();
       const response = await fetch('/.netlify/functions/create-checkout-session', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
       }
-
       const { sessionId } = await response.json();
-      
-      // Your Stripe Publishable Key is correctly set here
       const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA'); 
-      
       await stripe.redirectToCheckout({ sessionId });
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -66,20 +56,14 @@ export async function updateAuthUI() {
   const logoutButton = document.getElementById('logout-button');
   const upgradeSection = document.getElementById('upgrade-section');
 
-  // Explicitly tell Auth0 where to return the user after login
-  if (loginButton) loginButton.addEventListener('click', () => auth0.loginWithRedirect({
-    appState: { targetUrl: window.location.pathname }
-  }));
-  
+  if (loginButton) loginButton.addEventListener('click', () => auth0.loginWithRedirect());
   if (logoutButton) logoutButton.addEventListener('click', () => auth0.logout({ logoutParams: { returnTo: window.location.origin } }));
 
   if (isAuthenticated) {
     if (loginButton) loginButton.style.display = 'none';
     if (userProfile) userProfile.style.display = 'flex';
-
     const user = await auth0.getUser();
     const roles = user['https://spreadsheetsimplicity.com/roles'] || []; 
-    
     if (upgradeSection) {
         upgradeSection.style.display = roles.includes('pro-member') ? 'none' : 'block';
     }
@@ -94,30 +78,23 @@ export async function updateAuthUI() {
 export async function protectPage() {
     const isAuthenticated = await auth0.isAuthenticated();
     let isPro = false;
-    
     if (isAuthenticated) {
         const user = await auth0.getUser();
         const roles = user['https://spreadsheetsimplicity.com/roles'] || [];
         isPro = roles.includes('pro-member');
     }
-
     if (!isPro) {
         const mainContent = document.querySelector('main');
         if (mainContent) mainContent.style.display = 'none';
-
         const accessDeniedBlock = document.getElementById('access-denied');
         if (accessDeniedBlock) accessDeniedBlock.style.display = 'block';
-        
         const accessLoginButton = document.getElementById('access-login-button');
         if (accessLoginButton) {
             if (isAuthenticated) {
                 accessLoginButton.textContent = 'Upgrade to Pro';
                 accessLoginButton.onclick = () => window.location.href = '/'; 
             } else {
-                // Explicitly tell Auth0 where to return the user after login
-                accessLoginButton.addEventListener('click', () => auth0.loginWithRedirect({
-                    appState: { targetUrl: window.location.pathname }
-                }));
+                accessLoginButton.addEventListener('click', () => auth0.loginWithRedirect());
             }
         }
     }
