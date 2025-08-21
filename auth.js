@@ -6,9 +6,12 @@ let auth0 = null;
 
 const config = {
   domain: "dev-m4nracli6jswxp7v.us.auth0.com",
-  clientId: "JAa1D0GJTf1TsaBXdQUdKSy0gNT6qZr5",
+  
+  // This uses the Client ID for your "Spreadsheet Simplicity" Single Page App
+  clientId: "JAa1D0GJTf1TsaBXdQUdKSy0gNT6qZr5", 
+
   authorizationParams: {
-    // We keep redirect_uri REMOVED from the main config for flexibility.
+    // We removed redirect_uri to let the SDK handle returning to the correct page
     audience: "https://spreadsheetsimplicity.netlify.app" 
   }
 };
@@ -34,7 +37,10 @@ async function handleSubscription() {
       }
 
       const { sessionId } = await response.json();
+      
+      // Your Stripe Publishable Key is correctly set here
       const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA'); 
+      
       await stripe.redirectToCheckout({ sessionId });
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -48,7 +54,6 @@ export async function initializeAuth0() {
   if (auth0) return;
   auth0 = await createAuth0Client(config);
   if (location.search.includes("code=") && location.search.includes("state=")) {
-    // The SDK handles the redirect URI automatically here on the return trip.
     await auth0.handleRedirectCallback();
     window.history.replaceState({}, document.title, window.location.pathname);
   }
@@ -61,12 +66,11 @@ export async function updateAuthUI() {
   const logoutButton = document.getElementById('logout-button');
   const upgradeSection = document.getElementById('upgrade-section');
 
-  // *** THIS IS THE FIRST CHANGE ***
-  // We now explicitly tell Auth0 where to return the user.
+  // Explicitly tell Auth0 where to return the user after login
   if (loginButton) loginButton.addEventListener('click', () => auth0.loginWithRedirect({
     appState: { targetUrl: window.location.pathname }
   }));
-
+  
   if (logoutButton) logoutButton.addEventListener('click', () => auth0.logout({ logoutParams: { returnTo: window.location.origin } }));
 
   if (isAuthenticated) {
@@ -110,8 +114,7 @@ export async function protectPage() {
                 accessLoginButton.textContent = 'Upgrade to Pro';
                 accessLoginButton.onclick = () => window.location.href = '/'; 
             } else {
-                // *** THIS IS THE SECOND CHANGE ***
-                // We do the same thing for the login button on the access denied page.
+                // Explicitly tell Auth0 where to return the user after login
                 accessLoginButton.addEventListener('click', () => auth0.loginWithRedirect({
                     appState: { targetUrl: window.location.pathname }
                 }));
@@ -120,4 +123,3 @@ export async function protectPage() {
     }
 }
 // --- END OF FILE auth.js ---
-
