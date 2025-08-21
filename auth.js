@@ -8,7 +8,7 @@ const config = {
   domain: "dev-m4nracli6jswxp7v.us.auth0.com",
   clientId: "JAalDOGJTf1TsaBXdQUdKSyOgNT6qZr5",
   authorizationParams: {
-    // redirect_uri is now REMOVED to allow Auth0 to return to the original page.
+    // We keep redirect_uri REMOVED from the main config for flexibility.
     audience: "https://spreadsheetsimplicity.netlify.app" 
   }
 };
@@ -48,6 +48,7 @@ export async function initializeAuth0() {
   if (auth0) return;
   auth0 = await createAuth0Client(config);
   if (location.search.includes("code=") && location.search.includes("state=")) {
+    // The SDK handles the redirect URI automatically here on the return trip.
     await auth0.handleRedirectCallback();
     window.history.replaceState({}, document.title, window.location.pathname);
   }
@@ -60,7 +61,12 @@ export async function updateAuthUI() {
   const logoutButton = document.getElementById('logout-button');
   const upgradeSection = document.getElementById('upgrade-section');
 
-  if (loginButton) loginButton.addEventListener('click', () => auth0.loginWithRedirect());
+  // *** THIS IS THE FIRST CHANGE ***
+  // We now explicitly tell Auth0 where to return the user.
+  if (loginButton) loginButton.addEventListener('click', () => auth0.loginWithRedirect({
+    appState: { targetUrl: window.location.pathname }
+  }));
+
   if (logoutButton) logoutButton.addEventListener('click', () => auth0.logout({ logoutParams: { returnTo: window.location.origin } }));
 
   if (isAuthenticated) {
@@ -104,7 +110,11 @@ export async function protectPage() {
                 accessLoginButton.textContent = 'Upgrade to Pro';
                 accessLoginButton.onclick = () => window.location.href = '/'; 
             } else {
-                accessLoginButton.addEventListener('click', () => auth0.loginWithRedirect());
+                // *** THIS IS THE SECOND CHANGE ***
+                // We do the same thing for the login button on the access denied page.
+                accessLoginButton.addEventListener('click', () => auth0.loginWithRedirect({
+                    appState: { targetUrl: window.location.pathname }
+                }));
             }
         }
     }
