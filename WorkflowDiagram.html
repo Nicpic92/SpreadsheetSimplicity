@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Diagram Builder - Spreadsheet Simplicity</title>
     
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="/output.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,7 +20,6 @@
             flex-direction: column; 
             height: 100vh; 
             overflow: hidden; 
-            background-color: #f8fafc;
         }
         main#app-container { display: flex; flex-grow: 1; overflow: hidden; }
         #sidebar { width: 250px; background-color: #f4f4f4; border-right: 1px solid #ddd; padding: 15px; overflow-y: auto; box-shadow: 2px 0 5px rgba(0,0,0,0.1); position: relative; z-index: 20; }
@@ -115,7 +114,7 @@
         </div>
     </header>
 
-    <!-- NOTE: The 'access-denied' block is NOT needed for a free tool, but leaving it here doesn't hurt. -->
+    <!-- This div is not used on a free page, but is harmless -->
     <div id="access-denied" class="container mx-auto text-center py-20" style="display:none;"></div>
 
     <main id="app-container">
@@ -207,6 +206,7 @@
         const gridSizeInput = document.getElementById('gridSizeInput');
         const textFormattingToolbar = document.getElementById('text-formatting-toolbar');
         const nodeColorInput = document.getElementById('nodeColorInput');
+
         const state = {
             draggedItem: null, isConnectingMode: false, firstNodeForConnection: null,
             selectedNodes: new Set(), selectedLine: null, isResizing: false,
@@ -215,6 +215,7 @@
             historyIndex: -1, clipboard: null, gridSize: parseInt(gridSizeInput.value, 10),
             dragOffsets: new Map()
         };
+
         function generateUniqueId(prefix) { return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`; }
         function getElementCenter(el) { return { x: el.offsetLeft + el.offsetWidth / 2, y: el.offsetTop + el.offsetHeight / 2 }; }
         function getTextElement(node) {
@@ -231,6 +232,7 @@
             const b = parseInt(match[3], 10);
             return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
         }
+
         function saveStateToHistory() {
             const currentState = { nodes: [], connections: [] };
             document.querySelectorAll('.workflow-node, .text-box').forEach(node => {
@@ -250,12 +252,14 @@
             state.historyIndex = state.history.length - 1;
         }
         function loadStateFromHistory(index) { if (index < 0 || index >= state.history.length) return; state.historyIndex = index; loadWorkflowDataIntoCanvas(state.history[index], false); }
+
         document.querySelectorAll('.tool-item').forEach(item => {
             item.addEventListener('dragstart', (e) => { state.draggedItem = e.target; e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer.setData('text/plain', e.target.dataset.type); setTimeout(() => e.target.classList.add('dragging'), 0); });
             item.addEventListener('dragend', (e) => e.target.classList.remove('dragging'));
         });
         workflowCanvas.addEventListener('dragover', (e) => e.preventDefault());
         workflowCanvas.addEventListener('drop', (e) => { e.preventDefault(); if (!state.draggedItem) return; createNodeOnCanvas(e.dataTransfer.getData('text/plain'), e.clientX, e.clientY); state.draggedItem = null; });
+
         function createNodeOnCanvas(type, clientX, clientY, nodeData = {}) {
             let newElement, textContentDiv;
             const isPastingOrLoading = Object.keys(nodeData).length > 0;
@@ -288,6 +292,7 @@
             if (!isPastingOrLoading) saveStateToHistory();
             return newElement;
         }
+        
         workflowCanvas.addEventListener('mousedown', (e) => {
             const isTextClick = e.target.classList.contains('workflow-node-text') && !e.ctrlKey && !e.metaKey
             if (isTextClick && e.target.contentEditable === 'true') return;
@@ -328,6 +333,7 @@
                 }
             } else { deselectAllElements(); exitConnectionMode(); }
         });
+
         window.addEventListener('mousemove', (e) => {
             if (!state.isResizing) return;
             let newWidth = state.initialWidth + (e.clientX - state.resizeStartX); let newHeight = state.initialHeight + (e.clientY - state.resizeStartY);
@@ -336,7 +342,9 @@
             state.resizingElement.style.width = `${newWidth}px`; state.resizingElement.style.height = `${newHeight}px`;
             updateElementConnections(state.resizingElement);
         });
+
         window.addEventListener('mouseup', () => { if (state.isResizing) { state.isResizing = false; document.body.style.cursor = 'default'; saveStateToHistory(); } });
+
         function selectNode(nodeElement) { nodeElement.classList.add('selected'); state.selectedNodes.add(nodeElement); updateToolbarState(); }
         function deselectNode(nodeElement) { nodeElement.classList.remove('selected'); state.selectedNodes.delete(nodeElement); updateToolbarState(); }
         function selectLine(lineElement) {
@@ -356,8 +364,10 @@
             if (state.firstNodeForConnection) { state.firstNodeForConnection.classList.remove('line-selected'); state.firstNodeForConnection = null; }
             updateToolbarState();
         }
+        
         function exitConnectionMode() { state.isConnectingMode = false; connectNodesBtn.classList.remove('active'); if (state.firstNodeForConnection) { state.firstNodeForConnection.classList.remove('line-selected'); state.firstNodeForConnection = null; } }
         connectNodesBtn.addEventListener('click', () => { state.isConnectingMode = !state.isConnectingMode; connectNodesBtn.classList.toggle('active', state.isConnectingMode); if (state.isConnectingMode) deselectAllElements(); else exitConnectionMode(); });
+        
         function handleNodeConnectionClick(node) {
             if (!state.firstNodeForConnection) { state.firstNodeForConnection = node; node.classList.add('line-selected');
             } else if (state.firstNodeForConnection !== node) {
@@ -369,10 +379,12 @@
                 state.firstNodeForConnection = null; saveStateToHistory();
             }
         }
+
         function createConnection(startNode, endNode, style, lineRoute) {
             const exists = state.connections.some(c => (c.startNodeId === startNode.id && c.endNodeId === endNode.id) || (c.startNodeId === endNode.id && c.endNodeId === startNode.id));
             if (exists) return; createConnectionDOM(generateUniqueId('line'), startNode, endNode, style, lineRoute);
         }
+
         function createConnectionDOM(id, startNode, endNode, style, lineRoute) {
             const lineDiv = document.createElement('div');
             lineDiv.id = id; lineDiv.dataset.style = style; lineDiv.dataset.lineRoute = lineRoute;
@@ -387,7 +399,9 @@
             state.connections.push(conn); updateConnectionPosition(conn);
             lineDiv.addEventListener('mousedown', (e) => { e.stopPropagation(); selectLine(lineDiv); });
         }
+
         function updateElementConnections(element) { state.connections.forEach(conn => { if (conn.startNodeId === element.id || conn.endNodeId === element.id) updateConnectionPosition(conn); }); }
+        
         function updateConnectionPosition(conn) {
             const startNode = document.getElementById(conn.startNodeId); const endNode = document.getElementById(conn.endNodeId); if (!startNode || !endNode) return;
             const startCenter = getElementCenter(startNode); const endCenter = getElementCenter(endNode);
@@ -408,6 +422,7 @@
                 conn.lineElement.style.cssText = `width:${distance}px; left:${startCenter.x}px; top:${startCenter.y}px; transform:rotate(${angle}deg); height:0;`;
             }
         }
+        
         function addTextEditingListeners(textElement) {
             textElement.addEventListener('focus', () => updateToolbarState()); textElement.addEventListener('blur', () => { saveStateToHistory(); updateToolbarState(); });
             textElement.addEventListener('keyup', () => updateToolbarState()); textElement.addEventListener('mouseup', () => updateToolbarState());
@@ -442,9 +457,11 @@
                 fontSizeInput.value = 14;
             }
         }
+        
         document.querySelectorAll('#text-formatting-toolbar .text-format-button').forEach(button => { button.addEventListener('mousedown', (e) => { e.preventDefault(); applyTextFormat(button.dataset.command); }); });
         fontSizeInput.addEventListener('input', () => { if (state.selectedNodes.size === 1) { const textElement = getTextElement(state.selectedNodes.values().next().value); if (textElement) textElement.style.fontSize = `${fontSizeInput.value}px`; } });
         fontSizeInput.addEventListener('change', () => saveStateToHistory());
+
         nodeColorInput.addEventListener('input', () => {
             const newColor = nodeColorInput.value;
             state.selectedNodes.forEach(node => {
@@ -453,6 +470,7 @@
             });
         });
         nodeColorInput.addEventListener('change', () => { saveStateToHistory(); });
+
         lineStyleSelect.addEventListener('change', () => {
             if (state.selectedLine) {
                 const conn = state.connections.find(c => c.id === state.selectedLine.id);
@@ -467,6 +485,7 @@
                 }
             }
         });
+
         gridSizeInput.addEventListener('change', () => {
             const newGridSize = parseInt(gridSizeInput.value, 10);
             if (!isNaN(newGridSize) && newGridSize >= 5) {
@@ -479,6 +498,7 @@
                 saveStateToHistory();
             } else { gridSizeInput.value = state.gridSize; }
         });
+
         async function getDiagramAsCanvas() {
             deselectAllElements(); exitConnectionMode(); const padding = 50; let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
             const nodes = document.querySelectorAll('.workflow-node, .text-box');
@@ -488,17 +508,20 @@
             const canvas = await html2canvas(workflowCanvas, { backgroundColor: '#f9f9f9', scale: 2, useCORS: true, x: minX - padding, y: minY - padding, width: (maxX - minX) + (padding * 2), height: (maxY - minY) + (padding * 2), });
             workflowCanvas.style.backgroundImage = originalBg; return canvas;
         }
+
         document.getElementById('exportPdfBtn').addEventListener('click', async () => {
             const diagramCanvas = await getDiagramAsCanvas(); if (!diagramCanvas) return;
             const diagramDataUrl = diagramCanvas.toDataURL('image/png'); const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({ orientation: diagramCanvas.width > diagramCanvas.height ? 'l' : 'p', unit: 'px', format: [diagramCanvas.width, diagramCanvas.height] });
             pdf.addImage(diagramDataUrl, 'PNG', 0, 0, diagramCanvas.width, diagramCanvas.height); pdf.save('workflow-diagram.pdf');
         });
+
         document.getElementById('printBtn').addEventListener('click', async () => { const canvas = await getDiagramAsCanvas(); if (!canvas) return; const dataUrl = canvas.toDataURL('image/png'); const printWindow = window.open('', '_blank'); printWindow.document.write(`<html><head><title>Print Diagram</title><style>body{margin:0}img{width:100%;height:auto;}@page{size:auto;margin:20mm}</style></head><body><img src="${dataUrl}"></body></html>`); printWindow.document.close(); printWindow.onload = () => { printWindow.focus(); printWindow.print(); printWindow.close(); }; });
         document.getElementById('clearCanvasBtn').addEventListener('click', () => { if(confirm('Clear canvas?')) { initializeApp(true); } });
         document.getElementById('saveBtn').addEventListener('click', () => { saveStateToHistory(); localStorage.setItem('workflowData', JSON.stringify(state.history[state.historyIndex])); alert('Workflow saved!'); });
         document.getElementById('loadBtn').addEventListener('click', () => { if(confirm('Loading will clear the canvas. Continue?')) { const data = localStorage.getItem('workflowData'); if(data) { loadWorkflowDataIntoCanvas(JSON.parse(data)); } else { alert('No saved data found.');}} });
         document.getElementById('exportJsonBtn').addEventListener('click', () => { saveStateToHistory(); const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.history[state.historyIndex], null, 2)); const dl = document.createElement('a'); dl.href = dataStr; dl.download = "workflow.json"; dl.click(); });
+        
         document.getElementById('importBtn').addEventListener('click', () => {
             const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
             input.onchange = e => {
@@ -518,6 +541,7 @@
             };
             input.click();
         });
+
         function loadWorkflowDataIntoCanvas(workflowData, saveToHistoryFlag = true) {
             workflowCanvas.innerHTML = ''; state.connections = []; deselectAllElements(); exitConnectionMode();
             if (workflowData?.nodes) { workflowData.nodes.forEach(nodeData => createNodeOnCanvas(nodeData.type, 0, 0, nodeData)); }
@@ -527,6 +551,7 @@
             }); }
             if (saveToHistoryFlag) saveStateToHistory(); updateToolbarState();
         }
+
         window.addEventListener('keydown', (e) => {
             const isEditingText = document.activeElement && (document.activeElement.contentEditable === 'true' || ['INPUT', 'SELECT'].includes(document.activeElement.tagName));
             if (isEditingText && e.key !== 'Escape') return;
@@ -537,6 +562,7 @@
             else if (isCtrlCmd && e.key.toLowerCase() === 'z') { e.preventDefault(); isCtrlCmd && e.shiftKey ? redo() : undo(); }
             else if (isCtrlCmd && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
         });
+        
         function deleteSelectedElement() {
             if (state.selectedNodes.size > 0) {
                 state.selectedNodes.forEach(node => {
@@ -554,6 +580,7 @@
             deselectAllElements(); saveStateToHistory();
         }
         removeNodeBtn.addEventListener('click', deleteSelectedElement);
+        
         function copySelectedElement() {
             if (state.selectedNodes.size > 0) {
                 const nodeToCopy = state.selectedNodes.values().next().value;
@@ -571,6 +598,7 @@
         }
         function undo() { if(state.historyIndex > 0) { state.historyIndex--; loadStateFromHistory(state.historyIndex); } }
         function redo() { if(state.historyIndex < state.history.length - 1) { state.historyIndex++; loadStateFromHistory(state.historyIndex); } }
+
         function initializeApp(forceNew = false) {
             const savedData = localStorage.getItem('workflowData');
             if (savedData && !forceNew) { loadWorkflowDataIntoCanvas(JSON.parse(savedData));
@@ -586,6 +614,7 @@
             workflowCanvas.style.backgroundSize = `${state.gridSize}px ${state.gridSize}px`;
             updateToolbarState();
         }
+        
         initializeApp();
     });
 </script>
