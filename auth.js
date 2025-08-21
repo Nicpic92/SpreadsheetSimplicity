@@ -1,3 +1,5 @@
+// --- START OF FILE auth.js ---
+
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
 let auth0 = null;
@@ -32,6 +34,7 @@ async function handleSubscription() {
       }
 
       const { sessionId } = await response.json();
+      // YOUR LIVE PUBLISHABLE KEY IS NOW CORRECTLY SET HERE
       const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA'); 
       await stripe.redirectToCheckout({ sessionId });
     } catch (error) {
@@ -107,3 +110,4 @@ export async function protectPage() {
         }
     }
 }
+// --- END OF FILE auth.js ---
