@@ -8,7 +8,7 @@ const config = {
   domain: "dev-m4nracli6jswxp7v.us.auth0.com",
   clientId: "JAalDOGJTf1TsaBXdQUdKSyOgNT6qZr5",
   authorizationParams: {
-    redirect_uri: window.location.origin,
+    // redirect_uri is now REMOVED to allow Auth0 to return to the original page.
     audience: "https://spreadsheetsimplicity.netlify.app" 
   }
 };
@@ -34,7 +34,6 @@ async function handleSubscription() {
       }
 
       const { sessionId } = await response.json();
-      // YOUR LIVE PUBLISHABLE KEY IS NOW CORRECTLY SET HERE
       const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA'); 
       await stripe.redirectToCheckout({ sessionId });
     } catch (error) {
