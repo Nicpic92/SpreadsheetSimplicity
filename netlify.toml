@@ -1,3 +1,7 @@
+[build]
+  command = "npm run build"
+  publish = "." # Set to your root directory
+
 [functions]
   node_bundler = "esbuild"
   directory = "netlify/functions/"
