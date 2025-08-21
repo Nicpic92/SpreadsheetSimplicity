@@ -1,0 +1,8 @@
+{
+  "name": "spreadsheet-simplicity-functions",
+  "version": "1.0.0",
+  "dependencies": {
+    "auth0": "^4.0.0",
+    "stripe": "^14.0.0"
+  }
+}

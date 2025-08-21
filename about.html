@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Security Promise - Spreadsheet Simplicity</title>
+    
+    <!-- Using Tailwind CSS for styling from a CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- HEADER with Navigation -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold text-gray-900">Spreadsheet Simplicity</a>
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="index.html" class="text-gray-600 hover:text-indigo-600 font-medium">Tools</a>
+                <a href="about.html" class="text-indigo-600 hover:text-indigo-700 font-bold">Our Security Promise</a>
+                <div class="pl-4">
+                    <button id="login-button" class="bg-indigo-600 text-white font-semibold rounded-lg py-2 px-4 hover:bg-indigo-700" style="display:none;">Log In</button>
+                    <div id="user-profile" class="items-center space-x-4" style="display:none;">
+                        <span class="font-medium text-gray-700">Pro Member</span>
+                        <button id="logout-button" class="text-gray-600 hover:text-indigo-600 font-medium">Log Out</button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main>
+        <!-- Page Title Section -->
+        <section class="bg-white py-16 md:py-24 px-6">
+            <div class="container mx-auto text-center">
+                <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900">
+                    Our Mission: Powerful Tools, <br class="hidden md:block">
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-teal-500">
+                        Uncompromising Privacy.
+                    </span>
+                </h1>
+                <p class="mt-6 max-w-3xl mx-auto text-lg md:text-xl text-gray-600">
+                    In a world where every click is tracked and every file is uploaded to the cloud, we asked a simple question: 
+                    <strong>What if your most sensitive data never had to leave your own computer?</strong>
+                </p>
+            </div>
+        </section>
+
+        <!-- "How It Works" Section -->
+        <section class="py-20 px-6">
+            <div class="container mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold text-gray-900">Your Data, Your Machine. Period.</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+                        This is not just a slogan; it is the fundamental architecture of every tool we build. When you use a Spreadsheet Simplicity tool, you are running a self-contained application entirely within your web browser.
+                    </p>
+                </div>
+
+                <!-- Core Technology Explanation -->
+                <div class="max-w-3xl mx-auto">
+                    <p class="font-semibold text-gray-800 bg-indigo-50 p-4 rounded-lg">
+                        When you drop a file into our XLSX Validator, your browser's JavaScript engine reads it locally, performs the validation, and displays the results. The file never crosses the boundary of your own computer.
+                    </p>
+                </div>
+
+
+                <!-- Comparison Table -->
+                <div class="max-w-5xl mx-auto mt-16">
+                    <h3 class="text-3xl font-bold text-center mb-8">Our Approach vs. The Cloud</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-full text-left border-collapse">
+                            <thead>
+                                <tr>
+                                    <th class="p-4 bg-gray-100 text-lg font-bold rounded-tl-lg">Our Local-First Approach</th>
+                                    <th class="p-4 bg-gray-800 text-white text-lg font-bold rounded-tr-lg">The Traditional Cloud-Based Approach</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b"><td class="p-4 align-top">✅ Your files are opened and processed directly by your browser.</td><td class="p-4 align-top">❌ You must upload your sensitive files to a third-party server.</td></tr>
+                                <tr class="border-b"><td class="p-4 align-top">✅ All processing happens on your computer's CPU.</td><td class="p-4 align-top">❌ Processing happens on a company's server, out of your control.</td></tr>
+                                <tr class="border-b"><td class="p-4 align-top">✅ Data is never transmitted over the internet.</td><td class="p-4 align-top">❌ Your data travels over the internet, creating potential vulnerabilities.</td></tr>
+                                <tr class="border-b"><td class="p-4 align-top">✅ Pro tools require login for access, but the tool's data processing remains 100% local.</td><td class="p-4 align-top">❌ Requires user accounts, adding another layer of potential security risk.</td></tr>
+                                <tr><td class="p-4 align-top rounded-bl-lg">✅ The tools work even if you are offline.</td><td class="p-4 align-top rounded-br-lg">❌ The tools are unusable without an active internet connection.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Benefits Section -->
+                <div class="max-w-4xl mx-auto mt-20">
+                    <h3 class="text-3xl font-bold text-center mb-8">What This Means For You</h3>
+                    <div class="grid md:grid-cols-2 gap-8 text-lg">
+                        <div class="bg-white p-6 rounded-lg shadow"><strong>Absolute Security:</strong> Work with sensitive data with the assurance that it remains 100% within your control, helping you meet compliance like GDPR, HIPAA, and CCPA.</div>
+                        <div class="bg-white p-6 rounded-lg shadow"><strong>Complete Privacy:</strong> We cannot see your data. We cannot access your files. We do not track what you are working on. Your work remains your own.</div>
+                        <div class="bg-white p-6 rounded-lg shadow"><strong>Blazing Speed:</strong> With no network delays from uploading or downloading, our tools are incredibly fast. The only limit is the power of your machine.</div>
+                        <div class="bg-white p-6 rounded-lg shadow"><strong>Offline Capability:</strong> Our custom tools work perfectly offline, because they don't need an internet connection to function once loaded.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto text-center px-6">
+            <div class="flex justify-center space-x-6 mb-4">
+                 <a href="index.html" class="text-gray-400 hover:text-white">Tools</a>
+                 <a href="about.html" class="text-gray-400 hover:text-white">Our Security Promise</a>
+            </div>
+            <p>&copy; 2025 Spreadsheet Simplicity. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { initializeAuth0, updateAuthUI } from './auth.js';
+        
+        // This is a public page, so we only need to initialize and update the UI.
+        // We do NOT call the protectPage() function here.
+        (async () => {
+            await initializeAuth0();
+            await updateAuthUI();
+        })();
+    </script>
+</body>
+</html>
