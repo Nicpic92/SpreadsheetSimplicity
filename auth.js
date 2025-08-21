@@ -1,3 +1,5 @@
+// --- START OF FILE auth.js ---
+
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
 let auth0 = null;
@@ -6,7 +8,10 @@ const config = {
   domain: "dev-m4nracli6jswxp7v.us.auth0.com",
   clientId: "JAalDOGJTf1TsaBXdQUdKSyOgNT6qZr5",
   authorizationParams: {
-    redirect_uri: window.location.origin
+    redirect_uri: window.location.origin,
+    // -- THIS IS THE CRITICAL LINE TO ADD --
+    // It tells Auth0 to create a token that Netlify Functions can verify.
+    audience: "https://spreadsheetsimplicity.netlify.app" 
   }
 };
 
@@ -27,13 +32,12 @@ async function handleSubscription() {
       });
 
       const { sessionId } = await response.json();
-      // Replace with your LIVE publishable key
       const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA'); 
       await stripe.redirectToCheckout({ sessionId });
     } catch (error) {
       console.error('Error creating checkout session:', error);
       subscribeButton.disabled = false;
-      subscribeButton.textContent = 'Upgrade for $10/month';
+      subscribeButton.textContent = 'Upgrade for $25/month';
     }
   });
 }
@@ -62,7 +66,6 @@ export async function updateAuthUI() {
     if (userProfile) userProfile.style.display = 'flex';
 
     const user = await auth0.getUser();
-    // IMPORTANT: Make sure this namespace matches the one in your Auth0 Action
     const roles = user['https://spreadsheetsimplicity.com/roles'] || []; 
     
     if (upgradeSection) {
@@ -82,7 +85,6 @@ export async function protectPage() {
     
     if (isAuthenticated) {
         const user = await auth0.getUser();
-        // IMPORTANT: Make sure this namespace matches the one in your Auth0 Action
         const roles = user['https://spreadsheetsimplicity.com/roles'] || [];
         isPro = roles.includes('pro-member');
     }
@@ -98,10 +100,11 @@ export async function protectPage() {
         if (accessLoginButton) {
             if (isAuthenticated) {
                 accessLoginButton.textContent = 'Upgrade to Pro';
-                accessLoginButton.onclick = () => window.location.href = '/'; // Go to homepage to upgrade
+                accessLoginButton.onclick = () => window.location.href = '/';
             } else {
                 accessLoginButton.addEventListener('click', () => auth0.loginWithRedirect());
             }
         }
     }
 }
+// --- END OF FILE auth.js ---
