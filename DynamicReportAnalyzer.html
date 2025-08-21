@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Report Analyzer - Pro Tool</title>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="/output.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+    <style> 
+        body { font-family: 'Inter', sans-serif; } 
     </style>
 </head>
-<body class="text-gray-800">
+<body class="text-gray-800 bg-gray-50">
 
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
@@ -33,7 +33,7 @@
             </nav>
         </div>
     </header>
-
+    
     <div id="access-denied" class="container mx-auto text-center py-20" style="display:none;">
         <div class="bg-white p-12 rounded-lg shadow-lg max-w-2xl mx-auto">
             <h2 class="text-3xl font-bold text-red-600">Access Denied</h2>
@@ -42,37 +42,43 @@
         </div>
     </div>
 
-    <main class="container mx-auto bg-white p-8 my-8 rounded-xl shadow-lg">
-        <h1 class="text-4xl font-extrabold text-gray-900 border-b pb-4 mb-6">Automated Report Builder</h1>
-        <p class="mb-8 text-lg text-gray-600">Upload the three source XLSX files. This tool will generate and download a single, fully-formatted Excel report that perfectly replicates your manual process and desired sheet order.</p>
+    <main class="container mx-auto my-12 px-6">
+        <div class="max-w-4xl mx-auto bg-white p-8 md:p-10 rounded-xl shadow-lg">
+            <div class="text-center">
+                <h1 class="text-4xl font-extrabold text-gray-900">Automated Report Builder</h1>
+                <p class="mt-4 max-w-3xl mx-auto text-lg text-gray-600">
+                    Upload the three source XLSX files. This tool will generate and download a single, fully-formatted Excel report that perfectly replicates your manual process and desired sheet order.
+                </p>
+            </div>
+            
+            <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 p-8 bg-gray-50 rounded-lg">
+                <div class="border-2 border-dashed border-gray-300 p-6 rounded-lg text-center bg-white flex flex-col justify-center items-center">
+                    <label for="mrw9File" class="font-bold text-gray-700 block mb-3 text-lg">1. MRW9 File</label>
+                    <input type="file" id="mrw9File" accept=".xlsx" onchange="updateFileName('mrw9File', 'mrw9FileName')" class="hidden">
+                    <label for="mrw9File" class="cursor-pointer bg-indigo-100 text-indigo-800 py-2 px-5 rounded-full font-semibold hover:bg-indigo-200 transition-colors">Choose File</label>
+                    <span id="mrw9FileName" class="block text-sm text-gray-500 mt-3 truncate w-full px-2">No file selected</span>
+                </div>
+                <div class="border-2 border-dashed border-gray-300 p-6 rounded-lg text-center bg-white flex flex-col justify-center items-center">
+                    <label for="w9DenialsFile" class="font-bold text-gray-700 block mb-3 text-lg">2. W9 Denials File</label>
+                    <input type="file" id="w9DenialsFile" accept=".xlsx" onchange="updateFileName('w9DenialsFile', 'w9DenialsFileName')" class="hidden">
+                    <label for="w9DenialsFile" class="cursor-pointer bg-indigo-100 text-indigo-800 py-2 px-5 rounded-full font-semibold hover:bg-indigo-200 transition-colors">Choose File</label>
+                    <span id="w9DenialsFileName" class="block text-sm text-gray-500 mt-3 truncate w-full px-2">No file selected</span>
+                </div>
+                <div class="border-2 border-dashed border-gray-300 p-6 rounded-lg text-center bg-white flex flex-col justify-center items-center">
+                    <label for="vendorMissingFile" class="font-bold text-gray-700 block mb-3 text-lg">3. Vendor Missing W9 File</label>
+                    <input type="file" id="vendorMissingFile" accept=".xlsx" onchange="updateFileName('vendorMissingFile', 'vendorMissingFileName')" class="hidden">
+                    <label for="vendorMissingFile" class="cursor-pointer bg-indigo-100 text-indigo-800 py-2 px-5 rounded-full font-semibold hover:bg-indigo-200 transition-colors">Choose File</label>
+                    <span id="vendorMissingFileName" class="block text-sm text-gray-500 mt-3 truncate w-full px-2">No file selected</span>
+                </div>
+            </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 p-8 bg-gray-50 rounded-lg">
-            <div class="border-2 border-dashed border-gray-300 p-6 rounded-lg text-center bg-white flex flex-col justify-center items-center">
-                <label for="mrw9File" class="font-bold text-gray-700 block mb-3 text-lg">1. MRW9 File</label>
-                <input type="file" id="mrw9File" accept=".xlsx" onchange="updateFileName('mrw9File', 'mrw9FileName')" class="hidden">
-                <label for="mrw9File" class="cursor-pointer bg-indigo-100 text-indigo-800 py-2 px-5 rounded-full font-semibold hover:bg-indigo-200 transition-colors">Choose File</label>
-                <span id="mrw9FileName" class="block text-sm text-gray-500 mt-3 truncate w-full px-2">No file selected</span>
-            </div>
-            <div class="border-2 border-dashed border-gray-300 p-6 rounded-lg text-center bg-white flex flex-col justify-center items-center">
-                <label for="w9DenialsFile" class="font-bold text-gray-700 block mb-3 text-lg">2. W9 Denials File</label>
-                <input type="file" id="w9DenialsFile" accept=".xlsx" onchange="updateFileName('w9DenialsFile', 'w9DenialsFileName')" class="hidden">
-                <label for="w9DenialsFile" class="cursor-pointer bg-indigo-100 text-indigo-800 py-2 px-5 rounded-full font-semibold hover:bg-indigo-200 transition-colors">Choose File</label>
-                <span id="w9DenialsFileName" class="block text-sm text-gray-500 mt-3 truncate w-full px-2">No file selected</span>
-            </div>
-            <div class="border-2 border-dashed border-gray-300 p-6 rounded-lg text-center bg-white flex flex-col justify-center items-center">
-                <label for="vendorMissingFile" class="font-bold text-gray-700 block mb-3 text-lg">3. Vendor Missing W9 File</label>
-                <input type="file" id="vendorMissingFile" accept=".xlsx" onchange="updateFileName('vendorMissingFile', 'vendorMissingFileName')" class="hidden">
-                <label for="vendorMissingFile" class="cursor-pointer bg-indigo-100 text-indigo-800 py-2 px-5 rounded-full font-semibold hover:bg-indigo-200 transition-colors">Choose File</label>
-                <span id="vendorMissingFileName" class="block text-sm text-gray-500 mt-3 truncate w-full px-2">No file selected</span>
-            </div>
+            <button id="downloadBtn" class="w-full py-4 px-6 text-xl font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-transform transform hover:scale-105" onclick="processAndDownload()">Generate and Download Report</button>
+            <div id="loader" class="text-center font-semibold text-indigo-700 p-4" style="display: none;">Processing... Please wait.</div>
+            <div id="status" class="text-center mt-4 font-semibold text-lg h-8"></div>
         </div>
-
-        <button id="downloadBtn" class="w-full py-4 px-6 text-xl font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-transform transform hover:scale-105" onclick="processAndDownload()">Generate and Download Report</button>
-        <div id="loader" class="text-center font-semibold text-indigo-700 p-4 hidden">Processing... Please wait.</div>
-        <div id="status" class="text-center mt-4 font-semibold text-lg"></div>
     </main>
 
-    <footer class="bg-gray-800 text-white py-8 mt-8">
+    <footer class="bg-gray-800 text-white py-8 mt-12">
         <div class="container mx-auto text-center px-6">
             <div class="flex justify-center space-x-6 mb-4"><a href="index.html" class="text-gray-400 hover:text-white">Tools</a><a href="about.html" class="text-gray-400 hover:text-white">Our Security Promise</a></div>
             <p>&copy; 2025 Spreadsheet Simplicity. All rights reserved.</p>
@@ -148,6 +154,7 @@
             btn.disabled = true;
             loader.style.display = 'block';
             status.textContent = '';
+            status.classList.remove('text-red-600', 'text-green-600');
 
             try {
                 const mrw9File = document.getElementById('mrw9File').files[0];
@@ -171,10 +178,8 @@
 
                 const workbook = XLSX.utils.book_new();
 
-                // --- 1. PREPARE ALL DATA FOR SHEETS ---
                 status.textContent = 'Analyzing and preparing data...';
 
-                // Pivot Data
                 const p1 = createPivot(mrw9Data, 'MRW9 in PV', 'Claim ID');
                 const nonValidatedClaims = mrw9Data.filter(row => String(row['VENDOR NOT VALIDATED IN CLAIM']).toUpperCase() === 'YES');
                 const p2 = createPivot(nonValidatedClaims, 'MRW9 in PV', 'Claim ID');
@@ -183,11 +188,9 @@
                 const p5 = createPivot(w9DenialsData, 'W9 Attached in PV (YES/NO)', 'Patient Ctrl No');
                 const p6 = createPivot(w9DenialsData, 'W9 Attached in PV (YES/NO)', 'Billing Provider Tax ID', 'distinctCount');
                 
-                // Green Sheet Data
                 const denialsWithW9 = w9DenialsData.filter(row => String(row['W9 Attached in PV (YES/NO)']).toUpperCase() === 'YES');
                 const notValidatedWithW9 = mrw9Data.filter(row => String(row['VENDOR NOT VALIDATED IN CLAIM']).toUpperCase() === 'YES' && String(row['MRW9 in PV']).toUpperCase() === 'YES');
                 
-                // --- 2. BUILD THE PIVOTS SHEET ---
                 status.textContent = 'Building Pivots sheet...';
                 const pivotsSheet = XLSX.utils.aoa_to_sheet([[]]);
                 const merges = [];
@@ -220,15 +223,12 @@
 
                 pivotsSheet['!merges'] = merges;
                 
-                // --- 3. BUILD AND ADD SHEETS IN CORRECT ORDER ---
                 status.textContent = 'Assembling final workbook...';
-                const greenTab = { rgb: "C6EFCE" }; // Excel's light green fill color
+                const greenTab = { rgb: "C6EFCE" };
                 const yellowTab = { rgb: "FFFF00" };
 
-                // Add Pivots
                 XLSX.utils.book_append_sheet(workbook, pivotsSheet, 'Pivots');
                 
-                // Add Green Sheets
                 const denialsWithW9Sheet = XLSX.utils.json_to_sheet(denialsWithW9);
                 denialsWithW9Sheet['!props'] = { tabColor: greenTab };
                 XLSX.utils.book_append_sheet(workbook, denialsWithW9Sheet, 'Denials with W9');
@@ -237,7 +237,6 @@
                 notValidatedWithW9Sheet['!props'] = { tabColor: greenTab };
                 XLSX.utils.book_append_sheet(workbook, notValidatedWithW9Sheet, 'MRW9 Not Validated w W9');
 
-                // Add Yellow Sheets
                 const mrw9SourceSheet = XLSX.utils.json_to_sheet(mrw9Data);
                 mrw9SourceSheet['!props'] = { tabColor: yellowTab };
                 XLSX.utils.book_append_sheet(workbook, mrw9SourceSheet, 'Source_MRW9');
@@ -250,10 +249,10 @@
                 missingSourceSheet['!props'] = { tabColor: yellowTab };
                 XLSX.utils.book_append_sheet(workbook, missingSourceSheet, 'Source_Vendor_Missing_W9');
                 
-                // --- 4. DOWNLOAD ---
                 status.textContent = 'Finalizing file...';
                 XLSX.writeFile(workbook, "Automated_W9_Analysis_Report.xlsx");
                 status.textContent = 'Download complete!';
+                status.classList.add('text-green-600');
 
             } catch (error) {
                 status.textContent = `Error: ${error.message}`;
