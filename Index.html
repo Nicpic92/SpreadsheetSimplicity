@@ -5,15 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spreadsheet Simplicity - Smarter. Faster. Simpler.</title>
     
+    <!-- This is the correct way to link your CSS after the build step -->
     <link href="/output.css" rel="stylesheet">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Stripe.js library is required for checkout -->
     <script src="https://js.stripe.com/v3/"></script>
 
-    <style> body { font-family: 'Inter', sans-serif; } </style>
+    <style> 
+        body { font-family: 'Inter', sans-serif; } 
+    </style>
 </head>
 <body class="text-gray-800 bg-gray-50">
-    <!-- ... (The rest of the Index.html file is identical to the one I provided in the previous step, including the header, main content, footer, and script tags) ... -->
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold text-gray-900">Spreadsheet Simplicity</a>
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="index.html" class="text-indigo-600 hover:text-indigo-700 font-bold">Tools</a>
+                <a href="about.html" class="text-gray-600 hover:text-indigo-600 font-medium">Our Security Promise</a>
+                <div class="pl-4">
+                    <button id="login-button" class="bg-indigo-600 text-white font-semibold rounded-lg py-2 px-4 hover:bg-indigo-700" style="display:none;">Log In</button>
+                    <div id="user-profile" class="items-center space-x-4" style="display:none;">
+                        <span class="font-medium text-gray-700">Pro Member</span>
+                        <button id="logout-button" class="text-gray-600 hover:text-indigo-600 font-medium">Log Out</button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="text-center py-20 px-6 bg-white">
+            <div class="container mx-auto">
+                <h2 class="text-5xl md:text-7xl font-extrabold tracking-tight"><span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-teal-500">Smarter. Faster. Simpler.</span></h2>
+                <p class="mt-4 text-2xl md:text-3xl font-semibold text-gray-700">That's Spreadsheet Simplicity!</p>
+                <p class="mt-6 max-w-2xl mx-auto text-lg text-gray-600">We create lightweight, powerful HTML tools to automate your most tedious spreadsheet tasks. No accounts, no servers, no cloud—just secure, simple solutions that run locally in your browser.</p>
+                <div class="mt-8"><a href="#tools" class="inline-block bg-indigo-600 text-white font-bold text-lg rounded-full py-4 px-10 hover:bg-indigo-700 transition-transform transform hover:scale-105">Explore The Tools</a></div>
+            </div>
+        </section>
+
+        <!-- UPGRADE SECTION - This will be shown to logged-in, non-pro users -->
+        <div id="upgrade-section" class="text-center py-16 px-6 bg-gray-100" style="display:none;">
+            <div class="container mx-auto max-w-2xl">
+                <h3 class="text-3xl font-bold text-gray-900">Become a Pro Member</h3>
+                <p class="mt-2 text-lg text-gray-600">Unlock all pro tools and support our work!</p>
+                <button id="subscribe-button" class="mt-6 bg-green-600 text-white font-bold text-lg rounded-full py-4 px-10 hover:bg-green-700 disabled:opacity-75 disabled:cursor-wait">
+                    Upgrade for $25/month
+                </button>
+            </div>
+        </div>
+
+        <section id="tools" class="py-20 px-6">
+            <div class="container mx-auto">
+                <div class="text-center mb-12">
+                    <h3 class="text-4xl font-bold text-gray-900">Our Suite of Tools</h3>
+                    <p class="mt-2 text-lg text-gray-600">A mix of free and pro tools designed to solve specific problems, simply and securely.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Pro Tools -->
+                    <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col border-2 border-indigo-500">
+                        <div class="flex-shrink-0"><svg class="h-12 w-12 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><h4 class="text-2xl font-bold mt-4">XLSX Validator</h4><span class="inline-block bg-indigo-100 text-indigo-800 text-sm font-semibold mt-2 px-3 py-1 rounded-full">Pro Tool</span></div>
+                        <p class="mt-4 text-gray-600 flex-grow">Define rules and instantly validate entire Excel files for data integrity, saving hours of manual checking and preventing costly errors.</p>
+                        <a href="./ExcelValidate.html" class="mt-6 inline-block bg-indigo-600 text-white font-semibold rounded-lg py-3 px-6 text-center hover:bg-indigo-700">Launch Tool</a>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col border-2 border-indigo-500">
+                        <div class="flex-shrink-0"><svg class="h-12 w-12 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><h4 class="text-2xl font-bold mt-4">Dynamic Report Analyzer</h4><span class="inline-block bg-indigo-100 text-indigo-800 text-sm font-semibold mt-2 px-3 py-1 rounded-full">Pro Tool</span></div>
+                        <p class="mt-4 text-gray-600 flex-grow">Automate a complex, multi-file analysis process, generating a fully-formatted Excel report with pivots and color-coded tabs in one click.</p>
+                        <a href="./DynamicReportAnalyzer.html" class="mt-6 inline-block bg-indigo-600 text-white font-semibold rounded-lg py-3 px-6 text-center hover:bg-indigo-700">Launch Tool</a>
+                    </div>
+                    <!-- Free Tools -->
+                    <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col">
+                        <div class="flex-shrink-0"><svg class="h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0  0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg><h4 class="text-2xl font-bold mt-4">Report Builder</h4><span class="inline-block bg-gray-100 text-gray-800 text-sm font-semibold mt-2 px-3 py-1 rounded-full">Free Tool</span></div>
+                        <p class="mt-4 text-gray-600 flex-grow">Merge multiple Excel reports into a single, comprehensive spreadsheet based on a common key like "Claim ID" or "Employee Number".</p>
+                        <a href="./ReportBuilder.html" class="mt-6 inline-block bg-gray-600 text-white font-semibold rounded-lg py-3 px-6 text-center hover:bg-gray-700">Launch Tool</a>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col">
+                        <div class="flex-shrink-0">
+                            <svg class="h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 100 12h-3a7.5 7.5 0 000-12h3z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6a7.5 7.5 0 010 12h3a7.5 7.5 0 010-12h-3z" />
+                            </svg>
+                            <h4 class="text-2xl font-bold mt-4">Workflow Diagram Builder</h4>
+                            <span class="inline-block bg-gray-100 text-gray-800 text-sm font-semibold mt-2 px-3 py-1 rounded-full">Free Tool</span>
+                        </div>
+                        <p class="mt-4 text-gray-600 flex-grow">Visually map out any process with a simple drag-and-drop interface. Perfect for planning, documentation, and presentations.</p>
+                        <a href="./WorkflowDiagram.html" class="mt-6 inline-block bg-gray-600 text-white font-semibold rounded-lg py-3 px-6 text-center hover:bg-gray-700">Launch Tool</a>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col">
+                        <div class="flex-shrink-0"><svg class="h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><h4 class="text-2xl font-bold mt-4">Sheet Merger</h4><span class="inline-block bg-gray-100 text-gray-800 text-sm font-semibold mt-2 px-3 py-1 rounded-full">Free Tool</span></div>
+                        <p class="mt-4 text-gray-600 flex-grow">Combine dozens of Excel sheets or tabs into one master file in seconds. No more tedious copy-pasting.</p>
+                        <a href="./SheetMerger.html" class="mt-6 inline-block bg-gray-600 text-white font-semibold rounded-lg py-3 px-6 text-center hover:bg-gray-700">Launch Tool</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto text-center px-6">
+            <div class="flex justify-center space-x-6 mb-4"><a href="index.html" class="text-gray-400 hover:text-white">Tools</a><a href="about.html" class="text-gray-400 hover:text-white">Our Security Promise</a></div>
+            <p>&copy; 2025 Spreadsheet Simplicity. All rights reserved.</p>
+        </div>
+    </footer>
+    
+    <script type="module">
+        import { initializeAuth0, updateAuthUI } from './auth.js';
+        (async () => {
+            await initializeAuth0();
+            await updateAuthUI();
+        })();
+    </script>
 </body>
 </html>
