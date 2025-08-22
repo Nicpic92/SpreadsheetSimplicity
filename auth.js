@@ -9,8 +9,8 @@ const config = {
   domain: "dev-eadic43odi6p2c5h.us.auth0.com",
   clientId: "J3TboacpSSkgFzkLLzqrgTe4UtEZQWBq", 
   authorizationParams: {
-    // The audience is required for pro features to work.
-    audience: "https://spreadsheetsimplicity.netlify.app"
+    // This MUST match the API Endpoint from your Netlify Identity settings
+    audience: "https://spreadsheetsimplicity.com/.netlify/identity"
   }
 };
 
@@ -101,3 +101,4 @@ export async function protectPage() {
     }
 }
 // --- END OF FILE auth.js (Definitive Final Version with NEW Credentials) ---
+
