@@ -1,15 +1,16 @@
-// --- START OF FILE auth.js (Final Clean Version) ---
+// --- START OF FILE auth.js (Final Definitive Version with NEW Credentials) ---
 
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
 let auth0 = null;
 
+// The values are now hardcoded with your NEW tenant and application credentials.
 const config = {
   domain: "dev-eadic43odi6p2c5h.us.auth0.com",
   clientId: "J3TboacpSSkgFzkLLzqrgTe4UtEZQWBq", 
   authorizationParams: {
-    // This now matches the new, simpler API Identifier.
-    audience: "https://spreadsheetsimplicity.com"
+    // The audience is required for pro features to work.
+    audience: "https://spreadsheetsimplicity.netlify.app"
   }
 };
 
@@ -26,7 +27,9 @@ async function handleSubscription() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) { throw new Error(`Server responded with ${response.status}: ${await response.text()}`); }
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
+      }
       const { sessionId } = await response.json();
       const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA'); 
       await stripe.redirectToCheckout({ sessionId });
@@ -97,4 +100,4 @@ export async function protectPage() {
         }
     }
 }
-// --- END OF FILE auth.js (Final Clean Version) ---
+// --- END OF FILE auth.js (Definitive Final Version with NEW Credentials) ---
