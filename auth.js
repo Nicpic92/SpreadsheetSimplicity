@@ -75,10 +75,6 @@ export async function getUser() {
 
 // --- UI and Page Protection Logic ---
 
-/**
- * A global function to open the authentication modal.
- * This will be called by various buttons across the site.
- */
 export function openAuthModal() {
   const modal = document.getElementById('auth-modal');
   if (modal) {
@@ -129,7 +125,6 @@ export async function updateAuthUI() {
     if (userProfileEl) userProfileEl.style.display = 'flex';
     
     const user = await getUser();
-    // In our new system, the role is 'subscription_status'
     const isPro = user && user.subscription_status === 'active';
 
     if (upgradeSection) {
@@ -143,14 +138,28 @@ export async function updateAuthUI() {
   }
 }
 
-export async function protectPage() {
-    let isPro = false;
-    if (isAuthenticated()) {
-        const user = await getUser();
-        isPro = user && user.subscription_status === 'active';
+/**
+ * Protects a page based on access requirements.
+ * @param {string} requiredAccess - Can be 'pro' for standard subscription, or a specific tool name like 'CustomTool.html'.
+ */
+export async function protectPage(requiredAccess) {
+    const user = await getUser();
+    let hasAccess = false;
+
+    // First, check if the user is an admin. Admins can access everything.
+    const isAdmin = user && user.roles && user.roles.includes('admin');
+    if (isAdmin) {
+        hasAccess = true;
+    } else if (requiredAccess === 'pro') {
+        // Standard Pro access check for paying subscribers
+        hasAccess = user && user.subscription_status === 'active';
+    } else if (requiredAccess) {
+        // Custom tool check for specific user permissions
+        const permittedTools = user ? user.permitted_tools || [] : [];
+        hasAccess = permittedTools.includes(requiredAccess);
     }
 
-    if (!isPro) {
+    if (!hasAccess) {
         const mainContent = document.querySelector('main');
         if (mainContent) mainContent.style.display = 'none';
         
@@ -160,10 +169,11 @@ export async function protectPage() {
         const accessLoginButton = document.getElementById('access-login-button');
         if (accessLoginButton) {
             if (isAuthenticated()) {
+                // User is logged in but doesn't have the right permissions
                 accessLoginButton.textContent = 'Upgrade to Pro';
-                accessLoginButton.onclick = () => window.location.href = '/'; 
+                accessLoginButton.onclick = () => window.location.href = '/'; // Go to homepage to upgrade
             } else {
-                // When a non-logged-in user clicks the login button on a protected page
+                // User is not logged in
                 accessLoginButton.addEventListener('click', openAuthModal);
             }
         }
