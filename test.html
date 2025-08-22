@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Auth0 Barebones Login Test</title>
+</head>
+<body>
+
+    <h1>Auth0 Login Test Page</h1>
+    <p>This page has no other code. It is a direct test of the Auth0 connection.</p>
+    <button id="loginButton">Log In</button>
+
+    <script type="module">
+        import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const config = {
+                domain: "dev-m4nracli6jswxp7v.us.auth0.com",
+                clientId: "JAa1D0GJTf1TsaBXdQUdKSyOgNT6qZr5",
+            };
+
+            const auth0 = await createAuth0Client(config);
+
+            // Handle the redirect after login
+            if (location.search.includes("code=") && location.search.includes("state=")) {
+                try {
+                    await auth0.handleRedirectCallback();
+                    window.history.replaceState({}, document.title, "/test.html");
+                } catch (e) {
+                    console.error("Error during handleRedirectCallback:", e);
+                    alert("Error during login redirect. Check console for details.");
+                }
+            }
+
+            const loginButton = document.getElementById('loginButton');
+            
+            loginButton.addEventListener('click', () => {
+                // We will explicitly tell Auth0 where to come back to.
+                auth0.loginWithRedirect({
+                    authorizationParams: {
+                        redirect_uri: window.location.origin + '/test.html'
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
