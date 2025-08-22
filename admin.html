@@ -1,67 +1,136 @@
-<script type="module">
-    import { getToken, getUser } from './auth.js';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Spreadsheet Simplicity</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        th, td { padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+        thead th { background-color: #f8fafc; font-weight: 600; position: sticky; top: 0; }
+        tbody tr:hover { background-color: #f1f5f9; }
+    </style>
+</head>
+<body class="bg-gray-100">
 
-    // This is the single entry point for the page logic
-    async function initializeAdminPage() {
-        const adminDashboard = document.getElementById('admin-dashboard');
-        const accessDenied = document.getElementById('access-denied');
-        const userTableBody = document.querySelector('#users-table tbody');
+    <!-- Access Denied Block -->
+    <div id="access-denied" class="min-h-screen flex items-center justify-center text-center" style="display:none;">
+        <div>
+            <h1 class="text-4xl font-bold text-red-600">Access Denied</h1>
+            <p class="mt-4 text-xl text-gray-700">You do not have permission to view this page.</p>
+            <a href="/" class="mt-8 inline-block bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700">Go to Homepage</a>
+        </div>
+    </div>
 
-        try {
-            // STEP 1: Get the current user's profile. This also validates the token.
-            const user = await getUser();
+    <!-- Main Admin Dashboard Content -->
+    <main id="admin-dashboard" class="container mx-auto p-4 sm:p-6 lg:p-8" style="display:none;">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <a href="/" class="text-indigo-600 hover:underline">← Back to Site</a>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Users and Companies</h2>
+            <div class="overflow-x-auto">
+                <table id="users-table" class="w-full text-sm">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Company</th>
+                            <th>Subscription</th>
+                            <th>Permitted Tools</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Loading indicator -->
+                        <tr>
+                            <td colspan="4" class="text-center text-gray-500 py-8">Loading user data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Main script to control the page -->
+    <script type="module">
+        import { getToken, getUser } from './auth.js';
 
-            // STEP 2: Check for admin role.
-            const isAdmin = user && user.roles && user.roles.includes('admin');
+        // This is the single entry point for the page logic
+        async function initializeAdminPage() {
+            const adminDashboard = document.getElementById('admin-dashboard');
+            const accessDenied = document.getElementById('access-denied');
+            const userTableBody = document.querySelector('#users-table tbody');
 
-            if (!isAdmin) {
-                // If not an admin, show access denied and stop.
+            try {
+                // STEP 1: Get the current user's profile. This also validates their token.
+                const user = await getUser();
+
+                // STEP 2: Check for the 'admin' role in the user's profile.
+                const isAdmin = user && user.roles && user.roles.includes('admin');
+
+                if (!isAdmin) {
+                    // If not an admin, show the access denied message and stop all further execution.
+                    adminDashboard.style.display = 'none';
+                    accessDenied.style.display = 'flex'; // Use flex to center it
+                    console.warn('Access Denied: User is not an admin.');
+                    return; 
+                }
+
+                // --- If we get here, the user is a verified admin ---
+                
+                // STEP 3: Show the dashboard and fetch the full list of users.
+                accessDenied.style.display = 'none';
+                adminDashboard.style.display = 'block';
+                
+                const token = getToken();
+                const response = await fetch('/.netlify/functions/get-admin-data', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch admin data. Server responded with ${response.status}`);
+                }
+
+                const allUsers = await response.json();
+
+                // STEP 4: Populate the table with the data.
+                userTableBody.innerHTML = ''; // Clear the "Loading..." message
+                if (allUsers.length === 0) {
+                    userTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500 py-8">No users found.</td></tr>';
+                } else {
+                    allUsers.forEach(u => {
+                        const permittedToolsText = (u.permitted_tools && u.permitted_tools.length > 0)
+                            ? u.permitted_tools.join(', ')
+                            : 'None';
+
+                        const row = `
+                            <tr>
+                                <td class="font-medium text-gray-800">${u.email}</td>
+                                <td>${u.company_name || 'N/A'}</td>
+                                <td>${u.subscription_status}</td>
+                                <td class="text-gray-600">${permittedToolsText}</td>
+                            </tr>
+                        `;
+                        userTableBody.innerHTML += row;
+                    });
+                }
+
+            } catch (error) {
+                console.error('An error occurred on the admin page:', error);
+                // This catch block handles cases where the user is not logged in, the token is expired,
+                // or a network error occurs. In all cases, we deny access.
                 adminDashboard.style.display = 'none';
-                accessDenied.style.display = 'block';
-                console.log('Access Denied: User is not an admin.');
-                return; 
+                accessDenied.style.display = 'flex';
             }
-
-            // --- If we get here, the user is a verified admin ---
-            
-            // STEP 3: Show the dashboard and fetch the admin data.
-            accessDenied.style.display = 'none';
-            adminDashboard.style.display = 'block';
-            
-            const token = getToken();
-            const response = await fetch('/.netlify/functions/get-admin-data', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) {
-                // This will catch the 401 if it still happens for some reason
-                throw new Error(`Failed to fetch admin data. Server responded with ${response.status}`);
-            }
-
-            const allUsers = await response.json();
-
-            // STEP 4: Populate the table with the data.
-            userTableBody.innerHTML = ''; // Clear existing rows
-            allUsers.forEach(u => {
-                const row = `
-                    <tr>
-                        <td>${u.email}</td>
-                        <td>${u.company_name || 'N/A'}</td>
-                        <td>${u.subscription_status}</td>
-                        <td>${(u.permitted_tools && u.permitted_tools.length) ? u.permitted_tools.join(', ') : 'None'}</td>
-                    </tr>
-                `;
-                userTableBody.innerHTML += row;
-            });
-
-        } catch (error) {
-            console.error('Error on admin page:', error);
-            // General failure, likely due to logged out state or network error.
-            adminDashboard.style.display = 'none';
-            accessDenied.style.display = 'block';
         }
-    }
 
-    // Run the initialization function
-    initializeAdminPage();
-</script>
+        // Run the initialization function as soon as the page loads
+        initializeAdminPage();
+    </script>
+</body>
+</html>
