@@ -1,7 +1,13 @@
 [build]
   command = "npm run build"
-  publish = "." # Set to your root directory
+  publish = "."
 
 [functions]
   node_bundler = "esbuild"
   directory = "netlify/functions/"
+
+[build.processing]
+  [build.processing.js]
+    # Tell Netlify to scan for and replace env vars in your JS files
+    bundle = true
+    minify = true
