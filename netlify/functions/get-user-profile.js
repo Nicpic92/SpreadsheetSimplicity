@@ -10,17 +10,10 @@ const pool = new Pool({
 
 // Helper function to verify the JWT from the request headers
 const verifyToken = (authHeader) => {
-  if (!authHeader) {
-    return null;
-  }
-
-  const token = authHeader.split(' ')[1]; // Format is "Bearer <token>"
-  if (!token) {
-    return null;
-  }
-  
+  if (!authHeader) return null;
+  const token = authHeader.split(' ')[1];
+  if (!token) return null;
   try {
-    // This will throw an error if the token is invalid or expired
     return jwt.verify(token, process.env.JWT_SECRET);
   } catch (e) {
     console.error('Token verification failed:', e.message);
@@ -38,7 +31,8 @@ exports.handler = async (event) => {
   try {
     const client = await pool.connect();
     
-    // Fetch all the necessary user data: roles for security and permitted_tools for custom access
+    // This query must EXACTLY match the columns in your 'users' table.
+    // Let's ensure it's correct.
     const result = await client.query(
       'SELECT id, email, subscription_status, roles, permitted_tools FROM users WHERE id = $1',
       [decodedToken.userId]
@@ -49,13 +43,13 @@ exports.handler = async (event) => {
       return { statusCode: 404, body: JSON.stringify({ error: 'User not found' }) };
     }
 
-    // Return the user's profile
     return {
       statusCode: 200,
       body: JSON.stringify(result.rows[0]),
     };
 
   } catch (error) {
+    // This is where a database error (like a typo in a column name) would be caught.
     console.error('Get Profile Error:', error);
     return { statusCode: 500, body: JSON.stringify({ error: 'Internal Server Error' }) };
   }
