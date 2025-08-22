@@ -82,29 +82,97 @@ export function openAuthModal() {
 }
 
 async function handleSubscription() {
-  // ... (This function remains unchanged)
+  const subscribeButton = document.getElementById('subscribe-button');
+  if (!subscribeButton) return;
+
+  subscribeButton.addEventListener('click', async () => {
+    try {
+      subscribeButton.disabled = true;
+      subscribeButton.textContent = 'Redirecting...';
+      const token = getToken();
+      const response = await fetch('/.netlify/functions/create-checkout-session', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
+      }
+      const { sessionId } = await response.json();
+      const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA');
+      await stripe.redirectToCheckout({ sessionId });
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      subscribeButton.disabled = false;
+      subscribeButton.textContent = 'Upgrade for $25/month';
+    }
+  });
 }
 
 export async function updateAuthUI() {
-  // ... (This function remains unchanged)
+  const loginButton = document.getElementById('login-button');
+  const userProfileEl = document.getElementById('user-profile');
+  const logoutButton = document.getElementById('logout-button');
+  const upgradeSection = document.getElementById('upgrade-section');
+
+  // Always attach event listeners regardless of auth state
+  if (loginButton) loginButton.addEventListener('click', openAuthModal);
+  if (logoutButton) logoutButton.addEventListener('click', logout);
+
+  if (isAuthenticated()) {
+    // STATE: User is logged in
+    // ACTION: Hide login button, show profile, check for upgrade section
+    if (loginButton) loginButton.style.display = 'none';
+    if (userProfileEl) userProfileEl.style.display = 'flex';
+    
+    const user = await getUser();
+    const isPro = user && user.subscription_status === 'active';
+
+    if (upgradeSection) {
+      upgradeSection.style.display = isPro ? 'none' : 'block';
+    }
+    handleSubscription();
+
+  } else {
+    // STATE: User is logged out
+    // ACTION: Explicitly show login button, hide profile and upgrade section
+    if (loginButton) loginButton.style.display = 'block';
+    if (userProfileEl) userProfileEl.style.display = 'none';
+    if (upgradeSection) upgradeSection.style.display = 'none';
+  }
 }
 
 
-// --- NEW, SIMPLIFIED PAGE PROTECTION LOGIC ---
+// --- Page Protection Logic ---
+export async function protectPage() {
+    const hasAccess = await checkAccess(); // Assumes checkAccess function exists from previous steps
 
-/**
- * Checks with the backend if the current user has access to the current page.
- * @returns {Promise<boolean>} A promise that resolves to true if the user has access, otherwise false.
- */
+    if (!hasAccess) {
+        const mainContent = document.querySelector('main');
+        if (mainContent) mainContent.style.display = 'none';
+        
+        const accessDeniedBlock = document.getElementById('access-denied');
+        if (accessDeniedBlock) accessDeniedBlock.style.display = 'block';
+        
+        const accessLoginButton = document.getElementById('access-login-button');
+        if (accessLoginButton) {
+            if (isAuthenticated()) {
+                accessLoginButton.textContent = 'Upgrade Plan';
+                accessLoginButton.onclick = () => { window.location.href = '/'; }; 
+            } else {
+                accessLoginButton.textContent = 'Log In to Access';
+                accessLoginButton.addEventListener('click', openAuthModal);
+            }
+        }
+    }
+}
+
 async function checkAccess() {
-    // Get the filename of the current page (e.g., "ExcelValidate.html")
     const filename = window.location.pathname.split('/').pop();
-    if (!filename) return true; // Allow access to the root path "/"
+    if (!filename || filename === 'index.html') return true; 
 
     try {
         const response = await fetch('/.netlify/functions/check-access', {
             method: 'POST',
-            // Send the token even if the user is logged out (it will be null)
             headers: { 
                 'Authorization': `Bearer ${getToken()}`,
                 'Content-Type': 'application/json'
@@ -123,39 +191,5 @@ async function checkAccess() {
     } catch (error) {
         console.error("Error during access check:", error);
         return false;
-    }
-}
-
-
-/**
- * Protects a page by calling the backend to verify permissions.
- * If access is denied, it hides the main content and shows an access-denied message.
- */
-export async function protectPage() {
-    const hasAccess = await checkAccess();
-
-    if (!hasAccess) {
-        const mainContent = document.querySelector('main');
-        if (mainContent) {
-            mainContent.style.display = 'none';
-        }
-        
-        const accessDeniedBlock = document.getElementById('access-denied');
-        if (accessDeniedBlock) {
-            accessDeniedBlock.style.display = 'block';
-        }
-        
-        const accessLoginButton = document.getElementById('access-login-button');
-        if (accessLoginButton) {
-            if (isAuthenticated()) {
-                // User is logged in but doesn't have permission for this specific tool.
-                accessLoginButton.textContent = 'Upgrade Plan';
-                accessLoginButton.onclick = () => { window.location.href = '/'; }; 
-            } else {
-                // User is not logged in at all.
-                accessLoginButton.textContent = 'Log In to Access';
-                accessLoginButton.addEventListener('click', openAuthModal);
-            }
-        }
     }
 }
