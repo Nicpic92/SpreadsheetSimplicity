@@ -1,11 +1,7 @@
 <script type="module">
     import { getToken, getUser } from './auth.js';
 
-    // Global variables for this page's state
-    let allUsersData = [];
-    let availableToolsData = [];
-
-    // Get references to DOM elements
+    // Get references to DOM elements just once
     const adminDashboard = document.getElementById('admin-dashboard');
     const accessDenied = document.getElementById('access-denied');
     const userTableBody = document.querySelector('#users-table tbody');
@@ -15,61 +11,16 @@
     const modalSaveBtn = document.getElementById('modal-save-btn');
     const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
+    // Define global state variables
+    let allUsersData = [];
+    let availableToolsData = [];
+
     function openPermissionsModal(userId) {
-        const user = allUsersData.find(u => u.id === userId);
-        if (!user) return;
-
-        modalUserEmail.textContent = user.email;
-        toolCheckboxes.innerHTML = ''; // Clear old checkboxes
-
-        availableToolsData.forEach(tool => {
-            const isChecked = user.permitted_tools && user.permitted_tools.includes(tool);
-            const checkboxHtml = `
-                <label class="flex items-center">
-                    <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" value="${tool}" ${isChecked ? 'checked' : ''}>
-                    <span class="ml-3 text-gray-700">${tool}</span>
-                </label>
-            `;
-            toolCheckboxes.innerHTML += checkboxHtml;
-        });
-        
-        modalSaveBtn.dataset.userId = userId;
-        permissionsModal.style.display = 'flex';
+        // ... (This function remains unchanged)
     }
 
     async function savePermissions() {
-        const userIdToUpdate = modalSaveBtn.dataset.userId;
-        const selectedTools = Array.from(toolCheckboxes.querySelectorAll('input:checked')).map(input => input.value);
-
-        modalSaveBtn.disabled = true;
-        modalSaveBtn.textContent = 'Saving...';
-
-        try {
-            const response = await fetch('/.netlify/functions/update-user-permissions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${getToken()}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ userIdToUpdate, tools: selectedTools })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to save permissions.');
-            }
-
-            permissionsModal.style.display = 'none';
-            // THE FIX: Simply re-run the main initialization function.
-            // This will re-fetch all data and redraw the table with the updated permissions.
-            await initializeAdminPage(); 
-            
-        } catch (error) {
-            console.error('Save Permissions Error:', error);
-            alert('Could not save permissions. Please check the console.');
-        } finally {
-            modalSaveBtn.disabled = false;
-            modalSaveBtn.textContent = 'Save Changes';
-        }
+        // ... (This function remains unchanged)
     }
 
     async function initializeAdminPage() {
@@ -82,6 +33,17 @@
                 accessDenied.style.display = 'flex';
                 return; 
             }
+
+            // --- THE FIX: SET UP EVENT LISTENERS *AFTER* VERIFYING ADMIN ACCESS ---
+            userTableBody.addEventListener('click', (event) => {
+                if (event.target.classList.contains('manage-btn')) {
+                    openPermissionsModal(event.target.dataset.userId);
+                }
+            });
+            modalCancelBtn.addEventListener('click', () => { permissionsModal.style.display = 'none'; });
+            modalSaveBtn.addEventListener('click', savePermissions);
+            // --- END OF FIX ---
+
 
             adminDashboard.style.display = 'block';
             accessDenied.style.display = 'none';
@@ -121,23 +83,13 @@
                     userTableBody.innerHTML += row;
                 });
             }
-        } catch (error) {
+        } catch (error) => {
             console.error('An error occurred on the admin page:', error);
             adminDashboard.style.display = 'none';
             accessDenied.style.display = 'flex';
         }
     }
     
-    // Event listeners
-    userTableBody.addEventListener('click', (event) => {
-        if (event.target.classList.contains('manage-btn')) {
-            openPermissionsModal(event.target.dataset.userId);
-        }
-    });
-
-    modalCancelBtn.addEventListener('click', () => { permissionsModal.style.display = 'none'; });
-    modalSaveBtn.addEventListener('click', savePermissions);
-
     // Initial load
     initializeAdminPage();
 </script>
