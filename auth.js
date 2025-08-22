@@ -1,16 +1,16 @@
-// --- START OF FILE auth.js (Corrected for Netlify Build) ---
+// --- START OF FILE auth.js (Definitive Final Version with NEW Credentials) ---
 
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
 let auth0 = null;
 
-// This is the corrected syntax that Netlify's build process understands.
-// It will find these placeholders and replace them with your actual keys.
+// The values are now hardcoded with your NEW tenant and application credentials.
 const config = {
-  domain: process.env.VITE_AUTH0_DOMAIN,
-  clientId: process.env.VITE_AUTH0_CLIENT_ID, 
+  domain: "dev-eadic43odi6p2c5h.us.auth0.com",
+  clientId: "J3TboacpSSkgFzkLLzqrgTe4UtEZQWBq", 
   authorizationParams: {
-    audience: process.env.VITE_AUTH0_AUDIENCE
+    // The audience is required for pro features to work.
+    audience: "https://spreadsheetsimplicity.netlify.app"
   }
 };
 
@@ -100,4 +100,4 @@ export async function protectPage() {
         }
     }
 }
-// --- END OF FILE auth.js (Corrected for Netlify Build) ---
+// --- END OF FILE auth.js (Definitive Final Version with NEW Credentials) ---
