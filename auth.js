@@ -11,7 +11,7 @@ const config = {
   clientId: "2Ev5hKHRs84A5U6vxvt3inKeHPiMsxYv", 
 
   authorizationParams: {
-    // We are REMOVING the 'audience' parameter for this test.
+    // We are REMOVING the 'audience' parameter.
     redirect_uri: "https://spreadsheetsimplicity.com"
   }
 };
@@ -39,7 +39,6 @@ export async function updateAuthUI() {
   if (isAuthenticated) {
     if (loginButton) loginButton.style.display = 'none';
     if (userProfile) userProfile.style.display = 'flex';
-    // Hide the upgrade section for now
     if (upgradeSection) upgradeSection.style.display = 'none';
   } else {
     if (loginButton) loginButton.style.display = 'block';
@@ -48,7 +47,6 @@ export async function updateAuthUI() {
   }
 }
 
-// This function will now do nothing, making all tools temporarily accessible.
 export async function protectPage() {
     return; 
 }
