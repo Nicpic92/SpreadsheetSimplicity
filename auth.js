@@ -6,7 +6,7 @@ let auth0 = null;
 
 const config = {
   domain: "dev-m4nracli6jswxp7v.us.auth0.com",
-  clientId: "JAa1D0GJTf1TsaBXdQUdKSyOgNT6qZr5",
+  clientId: "JAalDOGJTf1TsaBXdQUdKSyOgNT6qZr5",
   authorizationParams: {
     // We are NOT specifying a redirect_uri here. The SDK will use the first
     // URL from your "Allowed Callback URLs" list, which is now correct.
@@ -99,3 +99,4 @@ export async function protectPage() {
     }
 }
 // --- END OF FILE auth.js (Final Simplified Version) ---
+
