@@ -1,15 +1,14 @@
-// --- START OF FILE auth.js (Final Definitive Version with NEW Credentials) ---
+// --- START OF FILE auth.js (Definitive Final Version) ---
 
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
 let auth0 = null;
 
-// The values are now hardcoded with your NEW tenant and application credentials.
 const config = {
   domain: "dev-eadic43odi6p2c5h.us.auth0.com",
   clientId: "J3TboacpSSkgFzkLLzqrgTe4UtEZQWBq", 
   authorizationParams: {
-    // The audience is required for pro features to work.
+    // The audience MUST exactly match the API Identifier in your Auth0 dashboard.
     audience: "https://spreadsheetsimplicity.netlify.app"
   }
 };
@@ -100,4 +99,4 @@ export async function protectPage() {
         }
     }
 }
-// --- END OF FILE auth.js (Definitive Final Version with NEW Credentials) ---
+// --- END OF FILE auth.js (Definitive Final Version) ---
