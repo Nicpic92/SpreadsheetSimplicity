@@ -6,38 +6,61 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// Helper function to verify the JWT
 const verifyToken = (authHeader) => {
-    // ... (same verifyToken function as in your other files)
+    if (!authHeader) {
+        console.log("verifyToken: No authHeader found.");
+        return null;
+    }
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+        console.log("verifyToken: No token found in header.");
+        return null;
+    }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log("verifyToken: Token successfully verified for userId:", decoded.userId);
+        return decoded;
+    } catch (e) {
+        console.error("verifyToken: JWT verification FAILED.", e.message);
+        return null;
+    }
 };
 
 exports.handler = async (event) => {
+  console.log("--- get-admin-data function invoked ---");
+  
   const decodedToken = verifyToken(event.headers.authorization);
   
-  // --- SECURITY CHECK ---
-  // 1. Check if token is valid
   if (!decodedToken || !decodedToken.userId) {
-    return { statusCode: 401, body: 'Unauthorized' };
+    console.error("get-admin-data: Failing with 401. Token was invalid or missing.");
+    return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
+
+  console.log(`get-admin-data: Token is valid. Proceeding with admin check for user ID: ${decodedToken.userId}`);
 
   try {
     const client = await pool.connect();
     
-    // 2. Fetch the current user's roles from the database
+    console.log("get-admin-data: Fetching roles from database...");
     const userResult = await client.query('SELECT roles FROM users WHERE id = $1', [decodedToken.userId]);
+    
     if (userResult.rows.length === 0) {
       client.release();
-      return { statusCode: 403, body: 'Forbidden: User not found' };
+      console.error(`get-admin-data: Failing with 403. User ID ${decodedToken.userId} not found in database.`);
+      return { statusCode: 403, body: JSON.stringify({ error: 'Forbidden: User not found' }) };
     }
     
-    // 3. Check if the user has the 'admin' role
     const userRoles = userResult.rows[0].roles || [];
+    console.log(`get-admin-data: Found roles for user: [${userRoles.join(', ')}]`);
+
     if (!userRoles.includes('admin')) {
       client.release();
-      return { statusCode: 403, body: 'Forbidden: Admin access required' };
+      console.error(`get-admin-data: Failing with 403. User does not have 'admin' role.`);
+      return { statusCode: 403, body: JSON.stringify({ error: 'Forbidden: Admin access required' }) };
     }
 
-    // --- If security checks pass, fetch all data ---
+    console.log("get-admin-data: Admin check PASSED. Fetching all user data...");
+    
     const allUsersResult = await client.query(
       `SELECT u.id, u.email, u.subscription_status, u.permitted_tools, c.name as company_name
        FROM users u
@@ -47,13 +70,14 @@ exports.handler = async (event) => {
 
     client.release();
 
+    console.log(`get-admin-data: Successfully fetched ${allUsersResult.rows.length} users. Returning 200 OK.`);
     return {
       statusCode: 200,
       body: JSON.stringify(allUsersResult.rows),
     };
 
   } catch (error) {
-    console.error('Admin Data Fetch Error:', error);
-    return { statusCode: 500, body: 'Internal Server Error' };
+    console.error('get-admin-data: CRITICAL DATABASE ERROR.', error);
+    return { statusCode: 500, body: JSON.stringify({ error: 'Internal Server Error' }) };
   }
 };
