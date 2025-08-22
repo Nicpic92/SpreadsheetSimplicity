@@ -1,4 +1,4 @@
-// --- START OF FILE auth.js (Final Simplified Version) ---
+// --- START OF FILE auth.js (Final Full-Featured Version) ---
 
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
@@ -6,13 +6,10 @@ let auth0 = null;
 
 const config = {
   domain: "dev-m4nracli6jswxp7v.us.auth0.com",
-  
-  // This is your NEW, clean Client ID
   clientId: "2Ev5hKHRs84A5U6vxvt3inKeHPiMsxYv", 
-
   authorizationParams: {
-    // We are REMOVING the 'audience' parameter.
-    redirect_uri: "https://spreadsheetsimplicity.com"
+    // The audience is required for pro features and must match the API we just created.
+    audience: "https://spreadsheetsimplicity.netlify.app" 
   }
 };
 
@@ -51,3 +48,4 @@ export async function protectPage() {
     return; 
 }
 // --- END OF FILE auth.js (Final Simplified Version) ---
+
