@@ -1,32 +1,33 @@
-const stripe = require('stripe')(process.env.STRIPE_WEBHOOK_SECRET);
-const { ManagementClient } = require('auth0');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY); // Use secret key here
+const { Pool } = require('pg');
 
-const auth0 = new ManagementClient({
-  domain: process.env.AUTH0_DOMAIN.replace('https://', ''),
-  clientId: process.env.AUTH0_M2M_CLIENT_ID,
-  clientSecret: process.env.AUTH0_M2M_CLIENT_SECRET,
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 exports.handler = async ({ body, headers }) => {
   try {
     const event = stripe.webhooks.constructEvent(
       body,
       headers['stripe-signature'],
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET // Ensure this is in Netlify env
     );
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
-      const auth0UserId = session.client_reference_id;
-      const proRoleId = process.env.AUTH0_PRO_ROLE_ID;
+      const neonUserId = session.client_reference_id;
 
-      if (!auth0UserId || !proRoleId) {
-        throw new Error('Missing user ID or role ID in webhook.');
+      if (!neonUserId) {
+        throw new Error('Missing user ID in webhook session.');
       }
-
-      await auth0.users.assignRoles({ id: auth0UserId }, { roles: [proRoleId] });
       
-      console.log(`Successfully assigned pro role to user ${auth0UserId}`);
+      // Update the user's status in the Neon database
+      const client = await pool.connect();
+      await client.query(
+        "UPDATE users SET subscription_status = 'active' WHERE id = $1",
+        [neonUserId]
+      );
+      client.release();
+      
+      console.log(`Successfully updated subscription status for user ${neonUserId}`);
     }
 
     return { statusCode: 200, body: 'success' };
