@@ -1,22 +1,26 @@
-// --- START OF FILE auth.js (Final Full-Featured Version) ---
-
+// --- START OF FILE auth.js (Clean Slate Version) ---
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
 let auth0 = null;
 
 const config = {
-  domain: "dev-m4nracli6jswxp7v.us.auth0.com",
-  clientId: "2Ev5hKHRs84A5U6vxvt3inKeHPiMsxYv", 
+  // *** PASTE YOUR NEW TENANT DOMAIN HERE ***
+  domain: "dev-eadic43odi6p2c5h.us.auth0.com
+", 
+  
+  // *** PASTE YOUR NEW APPLICATION CLIENT ID HERE ***
+  clientId: "J3TboacpSSkgFzkLLzqrgTe4UtEZQWBq
+", 
+
   authorizationParams: {
-    // The audience is required for pro features and must match the API we just created.
-    audience: "https://spreadsheetsimplicity.netlify.app" 
+    redirect_uri: "https://spreadsheetsimplicity.com"
+    // NO audience parameter
   }
 };
 
 export async function initializeAuth0() {
   if (auth0) return;
   auth0 = await createAuth0Client(config);
-
   if (location.search.includes("code=") && location.search.includes("state=")) {
     await auth0.handleRedirectCallback();
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -28,7 +32,6 @@ export async function updateAuthUI() {
   const loginButton = document.getElementById('login-button');
   const userProfile = document.getElementById('user-profile');
   const logoutButton = document.getElementById('logout-button');
-  const upgradeSection = document.getElementById('upgrade-section');
 
   if (loginButton) loginButton.addEventListener('click', () => auth0.loginWithRedirect());
   if (logoutButton) logoutButton.addEventListener('click', () => auth0.logout({ logoutParams: { returnTo: window.location.origin } }));
@@ -36,16 +39,12 @@ export async function updateAuthUI() {
   if (isAuthenticated) {
     if (loginButton) loginButton.style.display = 'none';
     if (userProfile) userProfile.style.display = 'flex';
-    if (upgradeSection) upgradeSection.style.display = 'none';
   } else {
     if (loginButton) loginButton.style.display = 'block';
     if (userProfile) userProfile.style.display = 'none';
-    if (upgradeSection) upgradeSection.style.display = 'none';
   }
 }
 
-export async function protectPage() {
-    return; 
-}
-// --- END OF FILE auth.js (Final Simplified Version) ---
-
+// All pro/subscription logic is disabled for this test.
+export async function protectPage() { return; }
+// --- END OF FILE auth.js (Clean Slate Version) ---
