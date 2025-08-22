@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Simple table styling */
+        th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+    <div id="access-denied" class="text-center py-20" style="display:none;">
+        <h1 class="text-3xl font-bold text-red-600">Access Denied</h1>
+        <p class="mt-4 text-lg">You do not have permission to view this page.</p>
+        <a href="/" class="mt-8 inline-block bg-indigo-600 text-white font-bold py-3 px-6 rounded">Go to Homepage</a>
+    </div>
+
+    <main id="admin-dashboard" style="display:none;">
+        <h1 class="text-3xl font-bold mb-6">Admin Dashboard</h1>
+        
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Users and Companies</h2>
+            <div class="overflow-x-auto">
+                <table id="users-table" class="w-full">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Company</th>
+                            <th>Subscription</th>
+                            <th>Permitted Tools</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- User data will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- We don't need the auth modal here, as you must already be logged in as an admin -->
+    
+    <script type="module">
+        import { getToken, getUser } from './auth.js';
+
+        async function protectAdminPage() {
+            const user = await getUser();
+            
+            // Protect page based on the 'admin' role
+            const isAdmin = user && user.roles && user.roles.includes('admin');
+
+            if (!isAdmin) {
+                document.getElementById('admin-dashboard').style.display = 'none';
+                document.getElementById('access-denied').style.display = 'block';
+                return false;
+            } else {
+                document.getElementById('admin-dashboard').style.display = 'block';
+                document.getElementById('access-denied').style.display = 'none';
+                return true;
+            }
+        }
+
+        async function loadAdminData() {
+            try {
+                const response = await fetch('/.netlify/functions/get-admin-data', {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch admin data.');
+                }
+
+                const users = await response.json();
+                const tbody = document.querySelector('#users-table tbody');
+                tbody.innerHTML = ''; // Clear existing rows
+
+                users.forEach(user => {
+                    const row = `
+                        <tr>
+                            <td>${user.email}</td>
+                            <td>${user.company_name || 'N/A'}</td>
+                            <td>${user.subscription_status}</td>
+                            <td>${user.permitted_tools.join(', ') || 'None'}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+
+            } catch (error) {
+                console.error(error);
+                alert('Could not load admin data. See console for details.');
+            }
+        }
+
+        // Main execution
+        (async () => {
+            const hasAccess = await protectAdminPage();
+            if (hasAccess) {
+                await loadAdminData();
+            }
+        })();
+    </script>
+</body>
+</html>
