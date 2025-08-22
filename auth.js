@@ -1,4 +1,4 @@
-// --- START OF FILE auth.js (Definitive Final Version with NEW Credentials) ---
+// --- START OF FILE auth.js (Final Definitive Version with NEW Credentials) ---
 
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
