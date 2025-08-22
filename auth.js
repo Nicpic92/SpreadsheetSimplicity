@@ -1,26 +1,26 @@
-// --- START OF FILE auth.js (Clean Slate Version) ---
+// --- START OF FILE auth.js (Definitive Final Version) ---
+
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
 let auth0 = null;
 
 const config = {
-  // *** PASTE YOUR NEW TENANT DOMAIN HERE ***
-  domain: "dev-eadic43odi6p2c5h.us.auth0.com
-", 
+  // Your NEW Tenant Domain
+  domain: "dev-eadic43odi6p2c5h.us.auth0.com", 
   
-  // *** PASTE YOUR NEW APPLICATION CLIENT ID HERE ***
-  clientId: "J3TboacpSSkgFzkLLzqrgTe4UtEZQWBq
-", 
+  // Your NEW Application Client ID
+  clientId: "J3TboacpSSkgFzkLLzqrgTe4UtEZQWBq", // <-- Comma is now correctly placed here
 
   authorizationParams: {
     redirect_uri: "https://spreadsheetsimplicity.com"
-    // NO audience parameter
+    // NO audience parameter for this test
   }
 };
 
 export async function initializeAuth0() {
   if (auth0) return;
   auth0 = await createAuth0Client(config);
+  
   if (location.search.includes("code=") && location.search.includes("state=")) {
     await auth0.handleRedirectCallback();
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -45,6 +45,8 @@ export async function updateAuthUI() {
   }
 }
 
-// All pro/subscription logic is disabled for this test.
-export async function protectPage() { return; }
-// --- END OF FILE auth.js (Clean Slate Version) ---
+// All pro/subscription logic is disabled until login is working.
+export async function protectPage() { 
+    return; 
+}
+// --- END OF FILE auth.js (Definitive Final Version) ---
