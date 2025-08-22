@@ -29,7 +29,6 @@ const verifyToken = (authHeader) => {
 };
 
 exports.handler = async (event) => {
-  // --- Verify the User's Session ---
   const decodedToken = verifyToken(event.headers.authorization);
 
   if (!decodedToken || !decodedToken.userId) {
@@ -37,11 +36,11 @@ exports.handler = async (event) => {
   }
   
   try {
-    // --- Fetch User Data from the Database ---
     const client = await pool.connect();
-    // We select only the safe-to-share information. NEVER select the password_hash.
+    
+    // Fetch all the necessary user data: roles for security and permitted_tools for custom access
     const result = await client.query(
-      'SELECT id, email, subscription_status, stripe_customer_id FROM users WHERE id = $1',
+      'SELECT id, email, subscription_status, roles, permitted_tools FROM users WHERE id = $1',
       [decodedToken.userId]
     );
     client.release();
@@ -50,7 +49,7 @@ exports.handler = async (event) => {
       return { statusCode: 404, body: JSON.stringify({ error: 'User not found' }) };
     }
 
-    // --- Return the User's Profile ---
+    // Return the user's profile
     return {
       statusCode: 200,
       body: JSON.stringify(result.rows[0]),
