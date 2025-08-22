@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Spreadsheet Simplicity</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -18,7 +20,11 @@
 
     <!-- Access Denied Block -->
     <div id="access-denied" class="min-h-screen flex items-center justify-center text-center" style="display:none;">
-        <!-- ... (same as before) ... -->
+        <div>
+            <h1 class="text-4xl font-bold text-red-600">Access Denied</h1>
+            <p class="mt-4 text-xl text-gray-700">You do not have permission to view this page.</p>
+            <a href="/" class="mt-8 inline-block bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700">Go to Homepage</a>
+        </div>
     </div>
 
     <!-- Main Admin Dashboard Content -->
@@ -99,13 +105,16 @@
                 toolCheckboxes.innerHTML += checkboxHtml;
             });
             
-            modalSaveBtn.dataset.userId = userId; // Store the user ID on the save button
+            modalSaveBtn.dataset.userId = userId;
             permissionsModal.style.display = 'flex';
         }
 
         async function savePermissions() {
             const userIdToUpdate = modalSaveBtn.dataset.userId;
             const selectedTools = Array.from(toolCheckboxes.querySelectorAll('input:checked')).map(input => input.value);
+
+            modalSaveBtn.disabled = true;
+            modalSaveBtn.textContent = 'Saving...';
 
             try {
                 const response = await fetch('/.netlify/functions/update-user-permissions', {
@@ -122,23 +131,37 @@
                 }
 
                 permissionsModal.style.display = 'none';
-                await initializeAdminPage(); // Refresh the whole table to show new data
+                await initializeAdminPage(true); // Refresh data after saving
                 
             } catch (error) {
                 console.error('Save Permissions Error:', error);
                 alert('Could not save permissions. Please check the console.');
+            } finally {
+                modalSaveBtn.disabled = false;
+                modalSaveBtn.textContent = 'Save Changes';
             }
         }
 
-        async function initializeAdminPage() {
+        async function initializeAdminPage(forceRefresh = false) {
+             if (forceRefresh) {
+                // Clear the cached user profile to get the latest data after an update
+                userProfile = null; 
+            }
             try {
                 const user = await getUser();
-                const isAdmin = user && user.roles && user.roles.includes('admin');
+
+                // ROBUST ADMIN CHECK
+                let isAdmin = false;
+                if (user && user.roles) {
+                    // Handles both native JS array and stringified array from backend
+                    isAdmin = JSON.stringify(user.roles).includes('admin');
+                }
 
                 if (!isAdmin) {
                     adminDashboard.style.display = 'none';
                     accessDenied.style.display = 'flex';
-                    return;
+                    console.warn('Access Denied: User is not an admin. Roles found:', user ? user.roles : 'No user');
+                    return; 
                 }
 
                 accessDenied.style.display = 'none';
@@ -163,7 +186,7 @@
                             ? u.permitted_tools.join(', ')
                             : 'None';
                         
-                        const isAdminBadge = u.roles && u.roles.includes('admin') ? '<span class="ml-2 text-xs font-semibold bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">Admin</span>' : '';
+                        const isAdminBadge = JSON.stringify(u.roles).includes('admin') ? '<span class="ml-2 text-xs font-semibold bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">Admin</span>' : '';
 
                         const row = `
                             <tr>
@@ -186,19 +209,15 @@
             }
         }
         
-        // --- EVENT LISTENERS ---
-        // Use event delegation for the manage buttons
         userTableBody.addEventListener('click', (event) => {
             if (event.target.classList.contains('manage-btn')) {
-                const userId = event.target.dataset.userId;
-                openPermissionsModal(userId);
+                openPermissionsModal(event.target.dataset.userId);
             }
         });
 
         modalCancelBtn.addEventListener('click', () => { permissionsModal.style.display = 'none'; });
         modalSaveBtn.addEventListener('click', savePermissions);
 
-        // Run the initialization function
         initializeAdminPage();
     </script>
 </body>
