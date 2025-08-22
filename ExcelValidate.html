@@ -494,12 +494,13 @@
 
 <script type="module">
     import { initializeAuth0, updateAuthUI, protectPage } from './auth.js';
-    (async () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         await initializeAuth0();
         await updateAuthUI();
         await protectPage();
-    })();
+    });
 </script>
 
 </body>
 </html>
+
