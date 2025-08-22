@@ -8,18 +8,21 @@ export function getToken() {
 
 export function isAuthenticated() {
   const token = getToken();
-  // This is a basic check. For true security, you'd decode and check expiry.
   return !!token;
 }
 
 export async function login(email, password) {
   const response = await fetch('/.netlify/functions/login', {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
+
   if (!response.ok) {
-    throw new Error(await response.text());
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Login failed.');
   }
+
   const { token } = await response.json();
   localStorage.setItem('userToken', token);
 }
@@ -27,10 +30,13 @@ export async function login(email, password) {
 export async function signup(email, password) {
     const response = await fetch('/.netlify/functions/signup', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
     });
+    
     if (!response.ok) {
-        throw new Error(await response.text());
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Signup failed.');
     }
     // After successful signup, log the user in automatically
     await login(email, password);
@@ -44,25 +50,43 @@ export function logout() {
 
 export async function getUser() {
   if (userProfile) return userProfile; // Return from cache if available
-
   if (!isAuthenticated()) return null;
 
-  const response = await fetch('/.netlify/functions/get-user-profile', {
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
-
-  if (!response.ok) {
-    // If token is invalid (e.g., expired), log the user out
+  try {
+    const response = await fetch('/.netlify/functions/get-user-profile', {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+  
+    if (!response.ok) {
+      // If token is invalid (e.g., expired), log the user out
+      logout();
+      return null;
+    }
+    
+    userProfile = await response.json();
+    return userProfile;
+  } catch (error) {
+    console.error("Failed to fetch user profile:", error);
     logout();
     return null;
   }
-  
-  userProfile = await response.json();
-  return userProfile;
 }
 
 
-// --- UI and Page Protection Logic (largely the same, but uses new auth functions) ---
+// --- UI and Page Protection Logic ---
+
+/**
+ * A global function to open the authentication modal.
+ * This will be called by various buttons across the site.
+ */
+export function openAuthModal() {
+  const modal = document.getElementById('auth-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+  } else {
+    console.error('Auth modal not found in the DOM.');
+  }
+}
 
 async function handleSubscription() {
   const subscribeButton = document.getElementById('subscribe-button');
@@ -81,7 +105,7 @@ async function handleSubscription() {
         throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
       }
       const { sessionId } = await response.json();
-      const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA'); 
+      const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA'); // Use your LIVE key
       await stripe.redirectToCheckout({ sessionId });
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -97,11 +121,7 @@ export async function updateAuthUI() {
   const logoutButton = document.getElementById('logout-button');
   const upgradeSection = document.getElementById('upgrade-section');
 
-  // We need to change the login button to open a modal/form instead of redirecting
-  if (loginButton) loginButton.addEventListener('click', () => {
-    // You will need to implement a login form/modal here.
-    alert('Login form not implemented yet. See Step 5.');
-  });
+  if (loginButton) loginButton.addEventListener('click', openAuthModal);
   if (logoutButton) logoutButton.addEventListener('click', logout);
 
   if (isAuthenticated()) {
@@ -109,6 +129,7 @@ export async function updateAuthUI() {
     if (userProfileEl) userProfileEl.style.display = 'flex';
     
     const user = await getUser();
+    // In our new system, the role is 'subscription_status'
     const isPro = user && user.subscription_status === 'active';
 
     if (upgradeSection) {
@@ -142,10 +163,8 @@ export async function protectPage() {
                 accessLoginButton.textContent = 'Upgrade to Pro';
                 accessLoginButton.onclick = () => window.location.href = '/'; 
             } else {
-                accessLoginButton.addEventListener('click', () => {
-                    // You will need to implement a login form/modal here.
-                    alert('Login form not implemented yet. See Step 5.');
-                });
+                // When a non-logged-in user clicks the login button on a protected page
+                accessLoginButton.addEventListener('click', openAuthModal);
             }
         }
     }
