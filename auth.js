@@ -6,7 +6,7 @@ let auth0 = null;
 
 const config = {
   domain: "dev-m4nracli6jswxp7v.us.auth0.com",
-  clientId: "QtTNHxKGrw0WiRe22fXFCv1HYlb7pEzh", 
+  clientId: "JAalDOGJTf1TsaBXdQUdKSyOgNT6qZr5", 
   authorizationParams: {
     // We DO NOT set redirect_uri here. The SDK handles it.
     audience: "https://spreadsheetsimplicity.netlify.app" 
@@ -100,5 +100,6 @@ export async function protectPage() {
     }
 }
 // --- END OF FILE auth.js (Final Version) ---
+
 
 
