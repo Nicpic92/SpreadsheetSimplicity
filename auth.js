@@ -1,4 +1,4 @@
-// --- START OF FILE auth.js (Final Version) ---
+// --- START OF FILE auth.js (Final Simplified Version) ---
 
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
@@ -6,9 +6,10 @@ let auth0 = null;
 
 const config = {
   domain: "dev-m4nracli6jswxp7v.us.auth0.com",
-  clientId: "JAalDOGJTf1TsaBXdQUdKSyOgNT6qZr5", 
+  clientId: "JAa1D0GJTf1TsaBXdQUdKSyOgNT6qZr5",
   authorizationParams: {
-    // We DO NOT set redirect_uri here. The SDK handles it.
+    // We are NOT specifying a redirect_uri here. The SDK will use the first
+    // URL from your "Allowed Callback URLs" list, which is now correct.
     audience: "https://spreadsheetsimplicity.netlify.app" 
   }
 };
@@ -26,9 +27,7 @@ async function handleSubscription() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
-      }
+      if (!response.ok) { throw new Error(`Server responded with ${response.status}: ${await response.text()}`); }
       const { sessionId } = await response.json();
       const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA'); 
       await stripe.redirectToCheckout({ sessionId });
@@ -99,7 +98,4 @@ export async function protectPage() {
         }
     }
 }
-// --- END OF FILE auth.js (Final Version) ---
-
-
-
+// --- END OF FILE auth.js (Final Simplified Version) ---
