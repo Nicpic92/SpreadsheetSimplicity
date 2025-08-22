@@ -80,4 +80,23 @@ export async function protectPage() {
     let isPro = false;
     if (isAuthenticated) {
         const user = await auth0.getUser();
-        const roles = user['https://spreadsheetsimplicity.com/roles'] |
+        const roles = user['https://spreadsheetsimplicity.com/roles'] || [];
+        isPro = roles.includes('pro-member');
+    }
+    if (!isPro) {
+        const mainContent = document.querySelector('main');
+        if (mainContent) mainContent.style.display = 'none';
+        const accessDeniedBlock = document.getElementById('access-denied');
+        if (accessDeniedBlock) accessDeniedBlock.style.display = 'block';
+        const accessLoginButton = document.getElementById('access-login-button');
+        if (accessLoginButton) {
+            if (isAuthenticated) {
+                accessLoginButton.textContent = 'Upgrade to Pro';
+                accessLoginButton.onclick = () => window.location.href = '/'; 
+            } else {
+                accessLoginButton.addEventListener('click', () => auth0.loginWithRedirect());
+            }
+        }
+    }
+}
+// --- END OF FILE auth.js (Final Full-Featured Version) ---
