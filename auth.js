@@ -1,5 +1,7 @@
 // --- START OF FILE auth.js (Definitive Final Version) ---
 
+// --- START OF FILE auth.js (Definitive Final Version) ---
+
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
 let auth0 = null;
@@ -8,7 +10,7 @@ const config = {
   domain: "dev-eadic43odi6p2c5h.us.auth0.com",
   clientId: "J3TboacpSSkgFzkLLzqrgTe4UtEZQWBq", 
   authorizationParams: {
-    // The audience MUST exactly match the API Identifier in your Auth0 dashboard.
+    // This MUST exactly match the API Identifier in your Auth0 dashboard.
     audience: "https://spreadsheetsimplicity.netlify.app"
   }
 };
@@ -100,3 +102,4 @@ export async function protectPage() {
     }
 }
 // --- END OF FILE auth.js (Definitive Final Version) ---
+
