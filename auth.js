@@ -1,4 +1,4 @@
-// --- START OF FILE auth.js (Final Reset Version) ---
+// --- START OF FILE auth.js (Final Explicit Redirect) ---
 
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
@@ -8,7 +8,8 @@ const config = {
   domain: "dev-m4nracli6jswxp7v.us.auth0.com",
   clientId: "JAa1D0GJTf1TsaBXdQUdKSyOgNT6qZr5", 
   authorizationParams: {
-    redirect_uri: "https://spreadsheetsimplicity.com", // Explicitly match the allowed URL
+    // We are now explicitly setting the redirect_uri to match the Auth0 setting.
+    redirect_uri: "https://spreadsheetsimplicity.com",
     audience: "https://spreadsheetsimplicity.netlify.app" 
   }
 };
@@ -30,7 +31,7 @@ export async function updateAuthUI() {
   const logoutButton = document.getElementById('logout-button');
 
   if (loginButton) loginButton.addEventListener('click', () => auth0.loginWithRedirect());
-  if (logoutButton) logoutButton.addEventListener('click', () => auth0.logout({ logoutParams: { returnTo: window.location.origin } }));
+  if (logoutButton) logoutButton.addEventListener('click', () => auth0.logout({ logoutParams: { returnTo: "https://spreadsheetsimplicity.com" } }));
 
   if (isAuthenticated) {
     if (loginButton) loginButton.style.display = 'none';
@@ -41,6 +42,6 @@ export async function updateAuthUI() {
   }
 }
 
-// All the pro/subscription logic is temporarily removed until login works.
+// All pro/subscription logic is temporarily removed until login works.
 export async function protectPage() { return; }
-// --- END OF FILE auth.js (Final Reset Version) ---
+// --- END OF FILE auth.js (Final Explicit Redirect) ---
