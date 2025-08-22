@@ -6,7 +6,7 @@ let auth0 = null;
 
 const config = {
   domain: "dev-m4nracli6jswxp7v.us.auth0.com",
-  clientId: "wkwiyDIEdlTwM8Esvfw6LcCpWOBMFYeP", 
+  clientId: "2Ev5hKHRs84A5U6vxvt3inKeHPiMsxYv", 
   authorizationParams: {
     // We are now explicitly setting the redirect_uri to match the Auth0 setting.
     redirect_uri: "https://spreadsheetsimplicity.com",
@@ -45,4 +45,5 @@ export async function updateAuthUI() {
 // All pro/subscription logic is temporarily removed until login works.
 export async function protectPage() { return; }
 // --- END OF FILE auth.js (Final Explicit Redirect) ---
+
 
