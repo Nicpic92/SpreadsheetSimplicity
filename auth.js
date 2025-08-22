@@ -10,7 +10,6 @@ const config = {
   authorizationParams: {
     // We are now explicitly setting the redirect_uri to match the Auth0 setting.
     redirect_uri: "https://spreadsheetsimplicity.com",
-    audience: "https://spreadsheetsimplicity.netlify.app" 
   }
 };
 
@@ -45,5 +44,6 @@ export async function updateAuthUI() {
 // All pro/subscription logic is temporarily removed until login works.
 export async function protectPage() { return; }
 // --- END OF FILE auth.js (Final Explicit Redirect) ---
+
 
 
