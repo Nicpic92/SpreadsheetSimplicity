@@ -1,17 +1,16 @@
-// --- START OF FILE auth.js (Final Version Using Environment Variables) ---
+// --- START OF FILE auth.js (Corrected for Netlify Build) ---
 
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
 let auth0 = null;
 
-// The values are no longer hardcoded. 
-// Netlify will replace these placeholders with your environment variables during the build process.
+// This is the corrected syntax that Netlify's build process understands.
+// It will find these placeholders and replace them with your actual keys.
 const config = {
-  domain: import.meta.env.VITE_AUTH0_DOMAIN,
-  clientId: import.meta.env.VITE_AUTH0_CLIENT_ID, 
+  domain: process.env.VITE_AUTH0_DOMAIN,
+  clientId: process.env.VITE_AUTH0_CLIENT_ID, 
   authorizationParams: {
-    audience: import.meta.env.VITE_AUTH0_AUDIENCE
-    // We do not set redirect_uri here, letting the SDK handle it is more robust.
+    audience: process.env.VITE_AUTH0_AUDIENCE
   }
 };
 
@@ -101,4 +100,4 @@ export async function protectPage() {
         }
     }
 }
-// --- END OF FILE auth.js (Final Version Using Environment Variables) ---
+// --- END OF FILE auth.js (Corrected for Netlify Build) ---
