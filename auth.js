@@ -1,14 +1,17 @@
-// --- START OF FILE auth.js (Final Full-Featured Version) ---
+// --- START OF FILE auth.js (Final Version Using Environment Variables) ---
 
 import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
 
 let auth0 = null;
 
+// The values are no longer hardcoded. 
+// Netlify will replace these placeholders with your environment variables during the build process.
 const config = {
-  domain: "dev-eadic43odi6p2c5h.us.auth0.com",
-  clientId: "J3TboacpSSkgFzkLLzqrgTe4UtEZQWBq", 
+  domain: import.meta.env.VITE_AUTH0_DOMAIN,
+  clientId: import.meta.env.VITE_AUTH0_CLIENT_ID, 
   authorizationParams: {
-    audience: "https://spreadsheetsimplicity.netlify.app" 
+    audience: import.meta.env.VITE_AUTH0_AUDIENCE
+    // We do not set redirect_uri here, letting the SDK handle it is more robust.
   }
 };
 
@@ -25,7 +28,9 @@ async function handleSubscription() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) { throw new Error(`Server responded with ${response.status}: ${await response.text()}`); }
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
+      }
       const { sessionId } = await response.json();
       const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA'); 
       await stripe.redirectToCheckout({ sessionId });
@@ -96,4 +101,4 @@ export async function protectPage() {
         }
     }
 }
-// --- END OF FILE auth.js (Final Full-Featured Version) ---
+// --- END OF FILE auth.js (Final Version Using Environment Variables) ---
