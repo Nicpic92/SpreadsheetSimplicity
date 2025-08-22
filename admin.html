@@ -1,95 +1,218 @@
-<script type="module">
-    import { getToken, getUser } from './auth.js';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Spreadsheet Simplicity</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        th, td { padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+        thead th { background-color: #f8fafc; font-weight: 600; position: sticky; top: 0; }
+        tbody tr:hover { background-color: #f1f5f9; }
+        .modal-bg { background-color: rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body class="bg-gray-100">
 
-    // Get references to DOM elements just once
-    const adminDashboard = document.getElementById('admin-dashboard');
-    const accessDenied = document.getElementById('access-denied');
-    const userTableBody = document.querySelector('#users-table tbody');
-    const permissionsModal = document.getElementById('permissions-modal');
-    const modalUserEmail = document.getElementById('modal-user-email');
-    const toolCheckboxes = document.getElementById('tool-checkboxes');
-    const modalSaveBtn = document.getElementById('modal-save-btn');
-    const modalCancelBtn = document.getElementById('modal-cancel-btn');
+    <!-- Access Denied Block -->
+    <div id="access-denied" class="min-h-screen flex items-center justify-center text-center" style="display:none;">
+        <div>
+            <h1 class="text-4xl font-bold text-red-600">Access Denied</h1>
+            <p class="mt-4 text-xl text-gray-700">You do not have permission to view this page.</p>
+            <a href="/" class="mt-8 inline-block bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700">Go to Homepage</a>
+        </div>
+    </div>
 
-    // Define global state variables
-    let allUsersData = [];
-    let availableToolsData = [];
+    <!-- Main Admin Dashboard Content -->
+    <main id="admin-dashboard" class="container mx-auto p-4 sm:p-6 lg:p-8" style="display:none;">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <a href="/" class="text-indigo-600 hover:underline">← Back to Site</a>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Users and Companies</h2>
+            <div class="overflow-x-auto">
+                <table id="users-table" class="w-full text-sm">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Company</th>
+                            <th>Subscription</th>
+                            <th>Permitted Tools</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="5" class="text-center text-gray-500 py-8">Loading user data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
 
-    function openPermissionsModal(userId) {
-        // ... (This function remains unchanged)
-    }
+    <!-- START: PERMISSIONS MODAL -->
+    <div id="permissions-modal" class="fixed inset-0 modal-bg flex items-center justify-center z-50 p-4" style="display:none;">
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900">Manage Permissions</h3>
+                <p id="modal-user-email" class="text-sm text-gray-600 mt-1"></p>
+                <div id="tool-checkboxes" class="mt-4 max-h-64 overflow-y-auto space-y-2 border p-4 rounded-md">
+                    <!-- Checkboxes will be inserted here -->
+                </div>
+            </div>
+            <div class="bg-gray-50 px-6 py-3 flex justify-end items-center space-x-3 rounded-b-lg">
+                <button id="modal-cancel-btn" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">Cancel</button>
+                <button id="modal-save-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">Save Changes</button>
+            </div>
+        </div>
+    </div>
+    <!-- END: PERMISSIONS MODAL -->
 
-    async function savePermissions() {
-        // ... (This function remains unchanged)
-    }
+    <script type="module">
+        import { getToken, getUser } from './auth.js';
 
-    async function initializeAdminPage() {
-        try {
-            const user = await getUser();
-            const isAdmin = user && JSON.stringify(user.roles).includes('admin');
+        // Get references to DOM elements just once
+        const adminDashboard = document.getElementById('admin-dashboard');
+        const accessDenied = document.getElementById('access-denied');
+        const userTableBody = document.querySelector('#users-table tbody');
+        const permissionsModal = document.getElementById('permissions-modal');
+        const modalUserEmail = document.getElementById('modal-user-email');
+        const toolCheckboxes = document.getElementById('tool-checkboxes');
+        const modalSaveBtn = document.getElementById('modal-save-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
-            if (!isAdmin) {
+        // Define global state variables
+        let allUsersData = [];
+        let availableToolsData = [];
+
+        function openPermissionsModal(userId) {
+            const user = allUsersData.find(u => u.id === userId);
+            if (!user) return;
+
+            modalUserEmail.textContent = user.email;
+            toolCheckboxes.innerHTML = ''; // Clear old checkboxes
+
+            availableToolsData.forEach(tool => {
+                const isChecked = user.permitted_tools && user.permitted_tools.includes(tool);
+                const checkboxHtml = `
+                    <label class="flex items-center">
+                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" value="${tool}" ${isChecked ? 'checked' : ''}>
+                        <span class="ml-3 text-gray-700">${tool}</span>
+                    </label>
+                `;
+                toolCheckboxes.innerHTML += checkboxHtml;
+            });
+            
+            modalSaveBtn.dataset.userId = userId;
+            permissionsModal.style.display = 'flex';
+        }
+
+        async function savePermissions() {
+            const userIdToUpdate = modalSaveBtn.dataset.userId;
+            const selectedTools = Array.from(toolCheckboxes.querySelectorAll('input:checked')).map(input => input.value);
+
+            modalSaveBtn.disabled = true;
+            modalSaveBtn.textContent = 'Saving...';
+
+            try {
+                const response = await fetch('/.netlify/functions/update-user-permissions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userIdToUpdate, tools: selectedTools })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save permissions.');
+                }
+
+                permissionsModal.style.display = 'none';
+                await initializeAdminPage(); // Refresh data after saving
+                
+            } catch (error) {
+                console.error('Save Permissions Error:', error);
+                alert('Could not save permissions. Please check the console.');
+            } finally {
+                modalSaveBtn.disabled = false;
+                modalSaveBtn.textContent = 'Save Changes';
+            }
+        }
+
+        async function initializeAdminPage() {
+            try {
+                const user = await getUser();
+                const isAdmin = user && JSON.stringify(user.roles).includes('admin');
+
+                if (!isAdmin) {
+                    adminDashboard.style.display = 'none';
+                    accessDenied.style.display = 'flex';
+                    return; 
+                }
+
+                // --- THE FIX: SET UP EVENT LISTENERS *AFTER* VERIFYING ADMIN ACCESS ---
+                userTableBody.addEventListener('click', (event) => {
+                    if (event.target.classList.contains('manage-btn')) {
+                        openPermissionsModal(event.target.dataset.userId);
+                    }
+                });
+                modalCancelBtn.addEventListener('click', () => { permissionsModal.style.display = 'none'; });
+                modalSaveBtn.addEventListener('click', savePermissions);
+                // --- END OF FIX ---
+
+                adminDashboard.style.display = 'block';
+                accessDenied.style.display = 'none';
+                
+                const response = await fetch('/.netlify/functions/get-admin-data', {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+
+                if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+
+                const data = await response.json();
+                allUsersData = data.users;
+                availableToolsData = data.availableTools;
+
+                userTableBody.innerHTML = '';
+                if (allUsersData.length === 0) {
+                    userTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-8">No users found.</td></tr>';
+                } else {
+                    allUsersData.forEach(u => {
+                        const permittedToolsText = (u.permitted_tools && u.permitted_tools.length > 0)
+                            ? u.permitted_tools.join(', ')
+                            : 'None';
+                        
+                        const isAdminBadge = JSON.stringify(u.roles).includes('admin') ? '<span class="ml-2 text-xs font-semibold bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">Admin</span>' : '';
+
+                        const row = `
+                            <tr>
+                                <td class="font-medium text-gray-800">${u.email} ${isAdminBadge}</td>
+                                <td>${u.company_name || 'N/A'}</td>
+                                <td>${u.subscription_status}</td>
+                                <td class="text-gray-600">${permittedToolsText}</td>
+                                <td>
+                                    <button class="manage-btn text-indigo-600 hover:text-indigo-900 font-medium" data-user-id="${u.id}">Manage</button>
+                                </td>
+                            </tr>
+                        `;
+                        userTableBody.innerHTML += row;
+                    });
+                }
+            } catch (error) {
+                console.error('An error occurred on the admin page:', error);
                 adminDashboard.style.display = 'none';
                 accessDenied.style.display = 'flex';
-                return; 
             }
-
-            // --- THE FIX: SET UP EVENT LISTENERS *AFTER* VERIFYING ADMIN ACCESS ---
-            userTableBody.addEventListener('click', (event) => {
-                if (event.target.classList.contains('manage-btn')) {
-                    openPermissionsModal(event.target.dataset.userId);
-                }
-            });
-            modalCancelBtn.addEventListener('click', () => { permissionsModal.style.display = 'none'; });
-            modalSaveBtn.addEventListener('click', savePermissions);
-            // --- END OF FIX ---
-
-
-            adminDashboard.style.display = 'block';
-            accessDenied.style.display = 'none';
-            
-            const response = await fetch('/.netlify/functions/get-admin-data', {
-                headers: { 'Authorization': `Bearer ${getToken()}` }
-            });
-
-            if (!response.ok) throw new Error(`Server responded with ${response.status}`);
-
-            const data = await response.json();
-            allUsersData = data.users;
-            availableToolsData = data.availableTools;
-
-            userTableBody.innerHTML = '';
-            if (allUsersData.length === 0) {
-                userTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-8">No users found.</td></tr>';
-            } else {
-                allUsersData.forEach(u => {
-                    const permittedToolsText = (u.permitted_tools && u.permitted_tools.length > 0)
-                        ? u.permitted_tools.join(', ')
-                        : 'None';
-                    
-                    const isAdminBadge = JSON.stringify(u.roles).includes('admin') ? '<span class="ml-2 text-xs font-semibold bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">Admin</span>' : '';
-
-                    const row = `
-                        <tr>
-                            <td class="font-medium text-gray-800">${u.email} ${isAdminBadge}</td>
-                            <td>${u.company_name || 'N/A'}</td>
-                            <td>${u.subscription_status}</td>
-                            <td class="text-gray-600">${permittedToolsText}</td>
-                            <td>
-                                <button class="manage-btn text-indigo-600 hover:text-indigo-900 font-medium" data-user-id="${u.id}">Manage</button>
-                            </td>
-                        </tr>
-                    `;
-                    userTableBody.innerHTML += row;
-                });
-            }
-        } catch (error) => {
-            console.error('An error occurred on the admin page:', error);
-            adminDashboard.style.display = 'none';
-            accessDenied.style.display = 'flex';
         }
-    }
-    
-    // Initial load
-    initializeAdminPage();
-</script>
+        
+        // Initial load
+        initializeAdminPage();
+    </script>
+</body>
+</html>
