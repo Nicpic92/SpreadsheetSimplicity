@@ -1,17 +1,68 @@
-// --- START OF FILE auth.js (Final Full-Featured Version) ---
+let userProfile = null; // In-memory cache for user profile
 
-import { createAuth0Client } from 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/+esm';
+// --- Core Authentication Functions ---
 
-let auth0 = null;
+export function getToken() {
+  return localStorage.getItem('userToken');
+}
 
-const config = {
-  domain: "dev-eadic43odi6p2c5h.us.auth0.com",
-  clientId: "J3TboacpSSkgFzkLLzqrgTe4UtEZQWBq", 
-  authorizationParams: {
-    // Re-enabling the audience is critical for pro features
-    audience: "https://spreadsheetsimplicity.netlify.app"
+export function isAuthenticated() {
+  const token = getToken();
+  // This is a basic check. For true security, you'd decode and check expiry.
+  return !!token;
+}
+
+export async function login(email, password) {
+  const response = await fetch('/.netlify/functions/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
   }
-};
+  const { token } = await response.json();
+  localStorage.setItem('userToken', token);
+}
+
+export async function signup(email, password) {
+    const response = await fetch('/.netlify/functions/signup', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+    });
+    if (!response.ok) {
+        throw new Error(await response.text());
+    }
+    // After successful signup, log the user in automatically
+    await login(email, password);
+}
+
+export function logout() {
+  localStorage.removeItem('userToken');
+  userProfile = null; // Clear cache
+  window.location.reload(); // Easiest way to reset UI state
+}
+
+export async function getUser() {
+  if (userProfile) return userProfile; // Return from cache if available
+
+  if (!isAuthenticated()) return null;
+
+  const response = await fetch('/.netlify/functions/get-user-profile', {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+
+  if (!response.ok) {
+    // If token is invalid (e.g., expired), log the user out
+    logout();
+    return null;
+  }
+  
+  userProfile = await response.json();
+  return userProfile;
+}
+
+
+// --- UI and Page Protection Logic (largely the same, but uses new auth functions) ---
 
 async function handleSubscription() {
   const subscribeButton = document.getElementById('subscribe-button');
@@ -21,7 +72,7 @@ async function handleSubscription() {
     try {
       subscribeButton.disabled = true;
       subscribeButton.textContent = 'Redirecting...';
-      const token = await auth0.getTokenSilently();
+      const token = getToken();
       const response = await fetch('/.netlify/functions/create-checkout-session', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -40,63 +91,62 @@ async function handleSubscription() {
   });
 }
 
-export async function initializeAuth0() {
-  if (auth0) return;
-  auth0 = await createAuth0Client(config);
-  if (location.search.includes("code=") && location.search.includes("state=")) {
-    await auth0.handleRedirectCallback();
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
-}
-
 export async function updateAuthUI() {
-  const isAuthenticated = await auth0.isAuthenticated();
   const loginButton = document.getElementById('login-button');
-  const userProfile = document.getElementById('user-profile');
+  const userProfileEl = document.getElementById('user-profile');
   const logoutButton = document.getElementById('logout-button');
   const upgradeSection = document.getElementById('upgrade-section');
 
-  if (loginButton) loginButton.addEventListener('click', () => auth0.loginWithRedirect());
-  if (logoutButton) logoutButton.addEventListener('click', () => auth0.logout({ logoutParams: { returnTo: window.location.origin } }));
+  // We need to change the login button to open a modal/form instead of redirecting
+  if (loginButton) loginButton.addEventListener('click', () => {
+    // You will need to implement a login form/modal here.
+    alert('Login form not implemented yet. See Step 5.');
+  });
+  if (logoutButton) logoutButton.addEventListener('click', logout);
 
-  if (isAuthenticated) {
+  if (isAuthenticated()) {
     if (loginButton) loginButton.style.display = 'none';
-    if (userProfile) userProfile.style.display = 'flex';
-    const user = await auth0.getUser();
-    const roles = user['https://spreadsheetsimplicity.com/roles'] || []; 
+    if (userProfileEl) userProfileEl.style.display = 'flex';
+    
+    const user = await getUser();
+    const isPro = user && user.subscription_status === 'active';
+
     if (upgradeSection) {
-        upgradeSection.style.display = roles.includes('pro-member') ? 'none' : 'block';
+        upgradeSection.style.display = isPro ? 'none' : 'block';
     }
     handleSubscription();
   } else {
     if (loginButton) loginButton.style.display = 'block';
-    if (userProfile) userProfile.style.display = 'none';
+    if (userProfileEl) userProfileEl.style.display = 'none';
     if (upgradeSection) upgradeSection.style.display = 'none';
   }
 }
 
 export async function protectPage() {
-    const isAuthenticated = await auth0.isAuthenticated();
     let isPro = false;
-    if (isAuthenticated) {
-        const user = await auth0.getUser();
-        const roles = user['https://spreadsheetsimplicity.com/roles'] || [];
-        isPro = roles.includes('pro-member');
+    if (isAuthenticated()) {
+        const user = await getUser();
+        isPro = user && user.subscription_status === 'active';
     }
+
     if (!isPro) {
         const mainContent = document.querySelector('main');
         if (mainContent) mainContent.style.display = 'none';
+        
         const accessDeniedBlock = document.getElementById('access-denied');
         if (accessDeniedBlock) accessDeniedBlock.style.display = 'block';
+        
         const accessLoginButton = document.getElementById('access-login-button');
         if (accessLoginButton) {
-            if (isAuthenticated) {
+            if (isAuthenticated()) {
                 accessLoginButton.textContent = 'Upgrade to Pro';
                 accessLoginButton.onclick = () => window.location.href = '/'; 
             } else {
-                accessLoginButton.addEventListener('click', () => auth0.loginWithRedirect());
+                accessLoginButton.addEventListener('click', () => {
+                    // You will need to implement a login form/modal here.
+                    alert('Login form not implemented yet. See Step 5.');
+                });
             }
         }
     }
 }
-// --- END OF FILE auth.js (Final Full-Featured Version) ---
