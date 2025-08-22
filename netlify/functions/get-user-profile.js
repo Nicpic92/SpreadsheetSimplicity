@@ -1,39 +1,63 @@
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
+// Helper function to verify the JWT from the request headers
 const verifyToken = (authHeader) => {
-  if (!authHeader) return null;
-  const token = authHeader.split(' ')[1];
+  if (!authHeader) {
+    return null;
+  }
+
+  const token = authHeader.split(' ')[1]; // Format is "Bearer <token>"
+  if (!token) {
+    return null;
+  }
+  
   try {
+    // This will throw an error if the token is invalid or expired
     return jwt.verify(token, process.env.JWT_SECRET);
   } catch (e) {
+    console.error('Token verification failed:', e.message);
     return null;
   }
 };
 
 exports.handler = async (event) => {
+  // --- Verify the User's Session ---
   const decodedToken = verifyToken(event.headers.authorization);
-  if (!decodedToken) {
-    return { statusCode: 401, body: 'Unauthorized' };
+
+  if (!decodedToken || !decodedToken.userId) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized: Invalid or missing token.' }) };
   }
   
   try {
+    // --- Fetch User Data from the Database ---
     const client = await pool.connect();
-    const result = await client.query('SELECT id, email, subscription_status FROM users WHERE id = $1', [decodedToken.userId]);
+    // We select only the safe-to-share information. NEVER select the password_hash.
+    const result = await client.query(
+      'SELECT id, email, subscription_status, stripe_customer_id FROM users WHERE id = $1',
+      [decodedToken.userId]
+    );
     client.release();
     
     if (result.rows.length === 0) {
-      return { statusCode: 404, body: 'User not found' };
+      return { statusCode: 404, body: JSON.stringify({ error: 'User not found' }) };
     }
 
+    // --- Return the User's Profile ---
     return {
       statusCode: 200,
       body: JSON.stringify(result.rows[0]),
     };
+
   } catch (error) {
     console.error('Get Profile Error:', error);
-    return { statusCode: 500, body: 'Internal Server Error' };
+    return { statusCode: 500, body: JSON.stringify({ error: 'Internal Server Error' }) };
   }
 };
