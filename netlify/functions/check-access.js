@@ -20,55 +20,50 @@ exports.handler = async (event) => {
         return { statusCode: 400, body: JSON.stringify({ error: 'Filename is required.' }) };
     }
 
-    const client = await pool.connect();
-    const toolResult = await client.query('SELECT access_level FROM tools WHERE filename = $1', [filename]);
-    
-    if (toolResult.rows.length === 0) {
-        client.release();
-        return { statusCode: 200, body: JSON.stringify({ hasAccess: false, reason: 'Tool not found in database.' }) };
-    }
-    
-    const tool = toolResult.rows[0];
-    const decodedToken = verifyToken(event.headers.authorization);
-    let user = null;
-    if (decodedToken) {
-        const userResult = await client.query('SELECT subscription_status, roles, permitted_tools FROM users WHERE id = $1', [decodedToken.userId]);
-        if (userResult.rows.length > 0) {
-            user = userResult.rows[0];
+    let client;
+    try {
+        client = await pool.connect();
+        const toolResult = await client.query('SELECT access_level FROM tools WHERE filename = $1', [filename]);
+        
+        if (toolResult.rows.length === 0) {
+            return { statusCode: 200, body: JSON.stringify({ hasAccess: false, reason: 'Tool not found in database.' }) };
         }
-    }
-    client.release();
+        
+        const tool = toolResult.rows[0];
+        const decodedToken = verifyToken(event.headers.authorization);
+        let user = null;
+        if (decodedToken) {
+            const userResult = await client.query('SELECT subscription_status, roles, permitted_tools FROM users WHERE id = $1', [decodedToken.userId]);
+            if (userResult.rows.length > 0) {
+                user = userResult.rows[0];
+            }
+        }
 
-    let hasAccess = false;
-    if (tool.access_level === 'free') {
-        hasAccess = true;
-    } 
-    else if (user) {
-        if (user.roles && user.roles.includes('admin')) {
+        let hasAccess = false;
+        if (tool.access_level === 'free') {
             hasAccess = true;
+        } 
+        else if (user) {
+            // Safer admin check
+            const isAdmin = user && user.roles && Array.isArray(user.roles) && user.roles.includes('admin');
+            const isPro = user.subscription_status === 'active';
+            const permittedTools = user.permitted_tools || [];
+
+            if (isAdmin) {
+                hasAccess = true;
+            } else if (tool.access_level === 'pro' && isPro) {
+                hasAccess = true;
+            } else if (tool.access_level === 'custom' && permittedTools.includes(filename)) {
+                hasAccess = true;
+            }
         }
-        // Other checks are here...
-    }
-    
-    // --- NEW DEBUGGING LOGIC ---
-    if (hasAccess) {
-        return { statusCode: 200, body: JSON.stringify({ hasAccess: true }) };
-    } else {
-        // If access is denied, send back a rich debug object
-        return { 
-            statusCode: 200, 
-            body: JSON.stringify({ 
-                hasAccess: false,
-                debug: {
-                    reason: "Access was denied. Checking user data...",
-                    tool_filename: filename,
-                    tool_access_level: tool.access_level,
-                    user_found: !!user,
-                    user_data_from_db: user, // The full user object from Neon
-                    is_roles_an_array: Array.isArray(user ? user.roles : null), // Is it a true array?
-                    typeof_roles: typeof (user ? user.roles : null) // Is it a 'string' or 'object'?
-                }
-            }) 
-        };
+        
+        return { statusCode: 200, body: JSON.stringify({ hasAccess }) };
+
+    } catch (error) {
+        console.error('Check Access Error:', error);
+        return { statusCode: 500, body: JSON.stringify({ error: 'Internal Server Error' }) };
+    } finally {
+        if (client) client.release();
     }
 };
