@@ -23,8 +23,7 @@ exports.handler = async (event) => {
     let client;
     try {
         client = await pool.connect();
-        const toolResult = await client.query('SELECT access_level FROM tools WHERE filename = $1', [filename]);
-        
+        const toolResult = await client.query('SELECT access_level FROM tools WHERE LOWER(filename) = LOWER($1)', [filename]);        
         if (toolResult.rows.length === 0) {
             return { statusCode: 200, body: JSON.stringify({ hasAccess: false, reason: 'Tool not found in database.' }) };
         }
