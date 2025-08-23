@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Tools Dashboard - Spreadsheet Simplicity</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.stripe.com/v3/"></script> <!-- Stripe.js for the upgrade button -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style> body { font-family: 'Inter', sans-serif; background-color: #f8fafc; } </style>
 </head>
@@ -24,79 +25,117 @@
     </header>
 
     <main class="container mx-auto px-6 py-12">
-        <h1 class="text-4xl font-bold text-gray-900">Your Tools Dashboard</h1>
+
+        <!-- Upgrade Section - Only visible to free users -->
+        <section id="upgrade-section" class="mb-12 bg-white p-8 rounded-xl shadow-lg border-2 border-green-500" style="display:none;">
+            <h2 class="text-3xl font-bold text-gray-900">Upgrade to Pro</h2>
+            <p class="mt-2 text-lg text-gray-600">You're currently on the Free plan. Upgrade now to unlock these powerful tools:</p>
+            <div id="pro-tools-list" class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-gray-700">
+                <!-- Pro tool names will be inserted here by JavaScript -->
+            </div>
+            <div class="mt-6 text-center">
+                <button id="subscribe-button" class="bg-green-600 text-white font-bold text-lg rounded-full py-4 px-10 hover:bg-green-700 disabled:opacity-75 disabled:cursor-wait">
+                    Upgrade to Pro for $25/month
+                </button>
+            </div>
+        </section>
+
+        <!-- User's Accessible Tools Section -->
+        <h1 class="text-4xl font-bold text-gray-900">Your Tools</h1>
         <p class="mt-2 text-lg text-gray-600">All the tools you have access to, ready to go.</p>
 
         <div id="tools-grid" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <!-- Loading state -->
-            <p id="loading-message" class="text-gray-500">Loading your tools...</p>
+            <p id="loading-message" class="text-gray-500 col-span-full">Loading your tools...</p>
         </div>
     </main>
 
-    <!-- This script populates the dashboard -->
     <script type="module">
-        import { getToken, isAuthenticated, logout, getUser } from './auth.js';
+        import { getToken, isAuthenticated, logout, getUser, handleSubscription } from './auth.js';
 
-        // Protection: If user is not logged in, redirect them to the homepage.
+        // --- PAGE PROTECTION ---
+        // If user is not logged in at all, redirect them to the homepage to log in.
         if (!isAuthenticated()) {
             window.location.href = '/index.html';
         }
 
         async function loadDashboard() {
-            const user = await getUser();
-            if (user && user.email) {
-                 document.getElementById('user-profile').style.display = 'flex';
-                 document.getElementById('user-email-display').textContent = user.email;
-                 document.getElementById('logout-button').addEventListener('click', logout);
-            }
-
+            // Get references to all the dynamic elements on the page
+            const userProfileEl = document.getElementById('user-profile');
+            const userEmailDisplay = document.getElementById('user-email-display');
+            const logoutButton = document.getElementById('logout-button');
+            const upgradeSection = document.getElementById('upgrade-section');
             const grid = document.getElementById('tools-grid');
+            const proToolsList = document.getElementById('pro-tools-list');
             const loadingMessage = document.getElementById('loading-message');
 
             try {
+                // Fetch the logged-in user's data
+                const user = await getUser();
+                if (user && user.email) {
+                     userProfileEl.style.display = 'flex';
+                     userEmailDisplay.textContent = user.email;
+                     logoutButton.addEventListener('click', logout);
+                }
+
+                // Show the upgrade section ONLY if the user is on the free plan
+                if (user && user.subscription_status === 'free' && !(user.roles && user.roles.includes('admin'))) {
+                    upgradeSection.style.display = 'block';
+                    handleSubscription(); // Attach the Stripe click listener to the upgrade button
+                }
+
+                // Fetch the user's accessible tools and the list of upsell tools
                 const response = await fetch('/.netlify/functions/get-my-tools', {
                     headers: { 'Authorization': `Bearer ${getToken()}` }
                 });
 
-                if (!response.ok) {
-                    throw new Error('Could not fetch your tools.');
-                }
-                const tools = await response.json();
-                loadingMessage.style.display = 'none'; // Hide loading message
+                if (!response.ok) throw new Error('Could not fetch your tools.');
+                
+                const data = await response.json();
+                const accessibleTools = data.accessibleTools;
+                const upsellTools = data.upsellTools;
 
-                if (tools.length === 0) {
-                    grid.innerHTML = '<p class="text-gray-600">You currently do not have access to any tools.</p>';
-                    return;
-                }
+                loadingMessage.style.display = 'none';
+                grid.innerHTML = ''; // Clear the "Loading..." message
 
-                tools.forEach(tool => {
-                    let badge = '';
-                    if (tool.access_level === 'pro') {
-                        badge = '<span class="inline-block bg-indigo-100 text-indigo-800 text-sm font-semibold mt-2 px-3 py-1 rounded-full">Pro Tool</span>';
-                    } else if (tool.access_level === 'custom') {
-                         badge = '<span class="inline-block bg-teal-100 text-teal-800 text-sm font-semibold mt-2 px-3 py-1 rounded-full">Custom Tool</span>';
-                    }
-
-                    const card = `
-                        <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col">
-                            <div class="flex-shrink-0">
-                                ${tool.icon_svg}
-                                <h4 class="text-2xl font-bold mt-4">${tool.display_name}</h4>
-                                ${badge}
+                // Populate the main grid with tools the user can access
+                if (accessibleTools.length === 0) {
+                    grid.innerHTML = '<p class="text-gray-600 col-span-full">You currently do not have access to any tools.</p>';
+                } else {
+                    accessibleTools.forEach(tool => {
+                        let badge = '';
+                        if (tool.access_level === 'pro') badge = '<span class="inline-block bg-indigo-100 text-indigo-800 text-sm font-semibold mt-2 px-3 py-1 rounded-full">Pro Tool</span>';
+                        else if (tool.access_level === 'custom') badge = '<span class="inline-block bg-teal-100 text-teal-800 text-sm font-semibold mt-2 px-3 py-1 rounded-full">Custom Tool</span>';
+                        
+                        const card = `
+                            <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col">
+                                <div class="flex-shrink-0">${tool.icon_svg || ''}<h4 class="text-2xl font-bold mt-4">${tool.display_name}</h4>${badge}</div>
+                                <p class="mt-4 text-gray-600 flex-grow">${tool.description}</p>
+                                <a href="/${tool.filename}" class="mt-6 inline-block bg-indigo-600 text-white font-semibold rounded-lg py-3 px-6 text-center hover:bg-indigo-700">Launch Tool</a>
                             </div>
-                            <p class="mt-4 text-gray-600 flex-grow">${tool.description}</p>
-                            <a href="/${tool.filename}" class="mt-6 inline-block bg-indigo-600 text-white font-semibold rounded-lg py-3 px-6 text-center hover:bg-indigo-700">Launch Tool</a>
-                        </div>
-                    `;
-                    grid.innerHTML += card;
-                });
+                        `;
+                        grid.innerHTML += card;
+                    });
+                }
+                
+                // Populate the upgrade section's list with Pro tools
+                proToolsList.innerHTML = '';
+                if (upsellTools.length > 0) {
+                     upsellTools.forEach(tool => {
+                        const toolItem = `<div class="flex items-center p-2 bg-gray-50 rounded-md">
+                                            <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                                            <span class="ml-2 font-medium">${tool.display_name}</span>
+                                          </div>`;
+                        proToolsList.innerHTML += toolItem;
+                    });
+                }
 
             } catch (error) {
-                loadingMessage.textContent = 'Error loading tools. Please try refreshing the page.';
+                loadingMessage.textContent = 'Error loading your dashboard. Please try refreshing the page.';
                 console.error(error);
             }
         }
 
+        // Run the main function to build the dashboard
         loadDashboard();
     </script>
 </body>
