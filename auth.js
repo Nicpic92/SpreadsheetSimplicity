@@ -1,190 +1,233 @@
-let userProfile = null; // In-memory cache for user profile
+// This variable will act as a simple in-memory cache for the user profile
+let userProfileCache = null;
 
-// --- Core Authentication Functions ---
+/**
+ * Stores the authentication token in the browser's local storage.
+ * @param {string} token The JWT received from the server.
+ */
+function saveToken(token) {
+    localStorage.setItem('ss_token', token);
+}
 
+/**
+ * Retrieves the authentication token from local storage.
+ * @returns {string|null} The stored token or null if not found.
+ */
 export function getToken() {
-  return localStorage.getItem('userToken');
+    return localStorage.getItem('ss_token');
 }
 
+/**
+ * Checks if a user is currently authenticated.
+ * @returns {boolean} True if a token exists, false otherwise.
+ */
 export function isAuthenticated() {
-  const token = getToken();
-  return !!token;
+    const token = getToken();
+    return !!token;
 }
 
+/**
+ * Handles the user login process.
+ * @param {string} email The user's email.
+ * @param {string} password The user's password.
+ */
 export async function login(email, password) {
-  const response = await fetch('/.netlify/functions/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
+    const response = await fetch('/.netlify/functions/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Login failed.');
-  }
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Login failed.');
+    }
 
-  const { token } = await response.json();
-  localStorage.setItem('userToken', token);
+    const { token } = await response.json();
+    saveToken(token);
+    userProfileCache = null; // Clear cache on new login
 }
 
+/**
+ * Handles the user signup process.
+ * @param {string} email The user's email.
+ * @param {string} password The user's password.
+ */
 export async function signup(email, password) {
     const response = await fetch('/.netlify/functions/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
     });
-    
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Signup failed.');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Signup failed.');
     }
+    
+    // After successful signup, log the user in automatically
     await login(email, password);
 }
 
+/**
+ * Logs the user out by removing the token and redirecting.
+ */
 export function logout() {
-  localStorage.removeItem('userToken');
-  userProfile = null;
-  window.location.reload();
-}
-
-export async function getUser() {
-  if (userProfile) return userProfile;
-  if (!isAuthenticated()) return null;
-
-  try {
-    const response = await fetch('/.netlify/functions/get-user-profile', {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    });
-  
-    if (!response.ok) {
-      logout();
-      return null;
-    }
-    
-    userProfile = await response.json();
-    return userProfile;
-  } catch (error) {
-    console.error("Failed to fetch user profile:", error);
-    logout();
-    return null;
-  }
-}
-
-// --- UI Logic ---
-
-export function openAuthModal() {
-  const modal = document.getElementById('auth-modal');
-  if (modal) {
-    modal.style.display = 'flex';
-  } else {
-    console.error('Auth modal not found in the DOM.');
-  }
+    localStorage.removeItem('ss_token');
+    userProfileCache = null; // Clear cache on logout
+    window.location.href = '/index.html';
 }
 
 /**
- * Attaches the Stripe checkout logic to the subscribe button.
- * EXPORTED so the dashboard page can use it.
+ * Fetches the current user's profile from the backend.
+ * Uses a simple cache to avoid repeated requests on the same page load.
+ * @returns {Promise<object|null>} The user object or null.
  */
-export async function handleSubscription() {
-  const subscribeButton = document.getElementById('subscribe-button');
-  if (!subscribeButton) return;
+export async function getUser() {
+    if (userProfileCache) {
+        return userProfileCache;
+    }
 
-  subscribeButton.addEventListener('click', async () => {
+    if (!isAuthenticated()) {
+        return null;
+    }
+
     try {
-      subscribeButton.disabled = true;
-      subscribeButton.textContent = 'Redirecting...';
-      const token = getToken();
-      const response = await fetch('/.netlify/functions/create-checkout-session', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}: ${await response.text()}`);
-      }
-      const { sessionId } = await response.json();
-      const stripe = Stripe('pk_live_51Ryc5tGbxgsv5aJ6w9YDK0tE0XVnCz1XspXdarf3DYoE7g7YXLut87vm2AUsAjVmHwXTnE6ZXalKohb17u3mA8wa008pR7uPYA');
-      await stripe.redirectToCheckout({ sessionId });
+        const response = await fetch('/.netlify/functions/get-user-profile', {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+
+        if (!response.ok) {
+            // If token is invalid (e.g., expired), log the user out
+            if (response.status === 401) logout(); 
+            return null;
+        }
+
+        userProfileCache = await response.json();
+        return userProfileCache;
+
     } catch (error) {
-      console.error('Error creating checkout session:', error);
-      subscribeButton.disabled = false;
-      subscribeButton.textContent = 'Upgrade for $25/month';
+        console.error("Failed to get user profile:", error);
+        return null;
     }
-  });
 }
 
+/**
+ * Updates the UI elements (header, buttons) based on authentication state.
+ */
 export async function updateAuthUI() {
-  const loginButton = document.getElementById('login-button');
-  const userProfileEl = document.getElementById('user-profile');
-  const logoutButton = document.getElementById('logout-button');
-  const upgradeSection = document.getElementById('upgrade-section');
+    const loginButtons = document.querySelectorAll('#login-button, #access-login-button');
+    const userProfileDiv = document.getElementById('user-profile');
+    const logoutButton = document.getElementById('logout-button');
+    const userEmailSpan = document.getElementById('user-email-display');
+    const modal = document.getElementById('auth-modal');
 
-  if (loginButton) loginButton.addEventListener('click', openAuthModal);
-  if (logoutButton) logoutButton.addEventListener('click', logout);
+    const openModal = () => {
+        if (modal) modal.style.display = 'flex';
+    };
 
-  if (isAuthenticated()) {
-    if (loginButton) loginButton.style.display = 'none';
-    if (userProfileEl) userProfileEl.style.display = 'flex';
-    
-    const user = await getUser();
-    const isPro = user && user.subscription_status === 'active';
-
-    if (upgradeSection) {
-      upgradeSection.style.display = isPro ? 'none' : 'block';
+    if (isAuthenticated()) {
+        loginButtons.forEach(btn => btn.style.display = 'none');
+        if (userProfileDiv) userProfileDiv.style.display = 'flex';
+        
+        const user = await getUser();
+        if (user && userEmailSpan) {
+            userEmailSpan.textContent = user.email;
+        }
+        
+        if (logoutButton) {
+            logoutButton.addEventListener('click', logout);
+        }
+    } else {
+        loginButtons.forEach(btn => {
+            btn.style.display = 'block';
+            btn.addEventListener('click', openModal);
+        });
+        if (userProfileDiv) userProfileDiv.style.display = 'none';
     }
-    // handleSubscription is now called from the specific pages that need it (Index and Dashboard)
-    if (document.getElementById('subscribe-button')) {
-        handleSubscription();
-    }
-
-  } else {
-    if (loginButton) loginButton.style.display = 'block';
-    if (userProfileEl) userProfileEl.style.display = 'none';
-    if (upgradeSection) upgradeSection.style.display = 'none';
-  }
 }
 
-// --- Page Protection Logic ---
-async function checkAccess() {
-    const filename = window.location.pathname.split('/').pop();
-    if (!filename || filename === 'index.html' || filename === 'about.html') return true;
+/**
+ * Protects a page by checking backend permissions before showing content.
+ * This is the function that was corrected.
+ */
+export async function protectPage() {
+    const mainContent = document.querySelector('main');
+    const accessDenied = document.getElementById('access-denied');
+
+    // --- THIS IS THE CORRECTED LOGIC ---
+    // 1. Get the full path from the URL (e.g., "/ExcelValidate.html")
+    const path = window.location.pathname;
+    
+    // 2. Extract the filename *exactly* as it is, with case and extension.
+    const filename = path.substring(path.lastIndexOf('/') + 1);
+    // --- END OF CORRECTED LOGIC ---
 
     try {
+        // 3. Send the UNALTERED filename to the backend.
         const response = await fetch('/.netlify/functions/check-access', {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Authorization': `Bearer ${getToken()}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ filename })
+            body: JSON.stringify({ filename: filename }) // Send the correct filename
         });
-        if (!response.ok) return false;
+
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+
         const data = await response.json();
-        return data.hasAccess;
+
+        if (data.hasAccess) {
+            // Access is granted, show the main tool content
+            if (mainContent) mainContent.style.display = 'block'; 
+            if (accessDenied) accessDenied.style.display = 'none';
+        } else {
+            // Access is denied, show the "Access Denied" message
+            if (mainContent) mainContent.style.display = 'none';
+            if (accessDenied) accessDenied.style.display = 'block'; 
+        }
+
     } catch (error) {
-        console.error("Error during access check:", error);
-        return false;
+        console.error('CRITICAL ERROR during access check:', error);
+        // Fallback to denying access if the check fails for any reason
+        if (mainContent) mainContent.style.display = 'none';
+        if (accessDenied) accessDenied.style.display = 'block';
     }
 }
 
-export async function protectPage() {
-    const hasAccess = await checkAccess();
+/**
+ * Initiates the Stripe checkout process for subscriptions.
+ */
+export async function handleSubscription() {
+    const subscribeButton = document.getElementById('subscribe-button');
+    if (!subscribeButton) return;
 
-    if (!hasAccess) {
-        const mainContent = document.querySelector('main');
-        if (mainContent) mainContent.style.display = 'none';
-        
-        const accessDeniedBlock = document.getElementById('access-denied');
-        if (accessDeniedBlock) accessDeniedBlock.style.display = 'block';
-        
-        const accessLoginButton = document.getElementById('access-login-button');
-        if (accessLoginButton) {
-            if (isAuthenticated()) {
-                accessLoginButton.textContent = 'Upgrade Plan';
-                accessLoginButton.onclick = () => { window.location.href = '/'; }; 
-            } else {
-                accessLoginButton.textContent = 'Log In to Access';
-                accessLoginButton.addEventListener('click', openAuthModal);
-            }
+    // NOTE: Replace with your actual Stripe publishable key in a .env file
+    const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY; 
+    
+    subscribeButton.addEventListener('click', async () => {
+        subscribeButton.disabled = true;
+        subscribeButton.textContent = 'Redirecting to checkout...';
+
+        try {
+            const response = await fetch('/.netlify/functions/create-checkout-session', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+
+            if (!response.ok) throw new Error('Could not create checkout session.');
+
+            const { sessionId } = await response.json();
+            const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+            await stripe.redirectToCheckout({ sessionId });
+
+        } catch (error) {
+            console.error('Subscription Error:', error);
+            subscribeButton.textContent = 'Error! Please try again.';
+            subscribeButton.disabled = false;
         }
-    }
+    });
 }
