@@ -48,7 +48,8 @@ exports.handler = async (event) => {
     const user = userResult.rows[0];
     const allTools = allToolsResult.rows;
 
-    const isAdmin = user.roles && user.roles.includes('admin');
+    // Safer admin check
+    const isAdmin = user && user.roles && Array.isArray(user.roles) && user.roles.includes('admin');
     const isPro = user.subscription_status === 'active';
     const permittedTools = user.permitted_tools || [];
 
