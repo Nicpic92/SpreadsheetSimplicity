@@ -2,6 +2,7 @@
   publish = "."
 
 [functions]
-  node_bundler = "esbuild"
+  # This tells Netlify to bundle each function and its dependencies separately.
+  # It is more efficient and results in smaller individual function packages.
+  node_bundler = "nft" # "nft" stands for Node File Trace
   directory = "netlify/functions/"
-
