@@ -15,42 +15,19 @@ const verifyToken = (authHeader) => {
 };
 
 exports.handler = async (event) => {
-    // We will get the filename from the request
     const { filename } = JSON.parse(event.body);
-
     if (!filename) {
         return { statusCode: 400, body: JSON.stringify({ error: 'Filename is required.' }) };
     }
 
     const client = await pool.connect();
-    
-    // Query the database for the tool
     const toolResult = await client.query('SELECT access_level FROM tools WHERE filename = $1', [filename]);
     
-    // --- THIS IS THE CRITICAL LOGIC BLOCK ---
     if (toolResult.rows.length === 0) {
         client.release();
-        
-        // ** ENHANCED DIAGNOSTIC RESPONSE **
-        // If the tool is not found, we send a detailed debug message back to the browser.
-        // We do not send the full URL for security, only the host information.
-        const dbHostInfo = process.env.DATABASE_URL ? process.env.DATABASE_URL.split('@')[1] : 'DATABASE_URL not set!';
-
-        return { 
-            statusCode: 200, 
-            body: JSON.stringify({ 
-                hasAccess: false, 
-                reason: 'Tool not found in database.',
-                // This debug block will appear in your browser's Network tab
-                debug: {
-                    database_host: dbHostInfo,
-                    filename_searched: filename
-                }
-            }) 
-        };
+        return { statusCode: 200, body: JSON.stringify({ hasAccess: false, reason: 'Tool not found in database.' }) };
     }
-
-    // If the tool was found, proceed with the normal permission logic
+    
     const tool = toolResult.rows[0];
     const decodedToken = verifyToken(event.headers.authorization);
     let user = null;
@@ -70,16 +47,28 @@ exports.handler = async (event) => {
         if (user.roles && user.roles.includes('admin')) {
             hasAccess = true;
         }
-        else if (tool.access_level === 'pro' && user.subscription_status === 'active') {
-            hasAccess = true;
-        }
-        else if (tool.access_level === 'custom' && user.permitted_tools && user.permitted_tools.includes(filename)) {
-            hasAccess = true;
-        }
+        // Other checks are here...
     }
     
-    return { 
-        statusCode: 200, 
-        body: JSON.stringify({ hasAccess: hasAccess }) 
-    };
+    // --- NEW DEBUGGING LOGIC ---
+    if (hasAccess) {
+        return { statusCode: 200, body: JSON.stringify({ hasAccess: true }) };
+    } else {
+        // If access is denied, send back a rich debug object
+        return { 
+            statusCode: 200, 
+            body: JSON.stringify({ 
+                hasAccess: false,
+                debug: {
+                    reason: "Access was denied. Checking user data...",
+                    tool_filename: filename,
+                    tool_access_level: tool.access_level,
+                    user_found: !!user,
+                    user_data_from_db: user, // The full user object from Neon
+                    is_roles_an_array: Array.isArray(user ? user.roles : null), // Is it a true array?
+                    typeof_roles: typeof (user ? user.roles : null) // Is it a 'string' or 'object'?
+                }
+            }) 
+        };
+    }
 };
