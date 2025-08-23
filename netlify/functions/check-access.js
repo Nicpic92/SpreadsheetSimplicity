@@ -15,74 +15,68 @@ const verifyToken = (authHeader) => {
 };
 
 exports.handler = async (event) => {
-    // THIS IS THE CRITICAL DIAGNOSTIC LINE:
-    // It will print the exact database URL your server is using to your terminal log.
-    console.log("--- Connecting to DB:", process.env.DATABASE_URL);
-
+    // We will get the filename from the request
     const { filename } = JSON.parse(event.body);
-    console.log(`--- check-access invoked for filename: "${filename}" ---`);
 
     if (!filename) {
-        console.error("Failing: Filename not provided in request body.");
         return { statusCode: 400, body: JSON.stringify({ error: 'Filename is required.' }) };
     }
 
     const client = await pool.connect();
     
-    // --- STEP 1: Get Tool Info ---
-    console.log(`Querying 'tools' table for filename: "${filename}"`);
+    // Query the database for the tool
     const toolResult = await client.query('SELECT access_level FROM tools WHERE filename = $1', [filename]);
     
+    // --- THIS IS THE CRITICAL LOGIC BLOCK ---
     if (toolResult.rows.length === 0) {
         client.release();
-        console.warn(`DENYING ACCESS: Tool "${filename}" not found in the database.`);
-        // Return the specific reason for easier debugging on the frontend
-        return { statusCode: 200, body: JSON.stringify({ hasAccess: false, reason: 'Tool not found in database.' }) };
-    }
-    const tool = toolResult.rows[0];
-    console.log(`Tool found. Required access_level: "${tool.access_level}"`);
+        
+        // ** ENHANCED DIAGNOSTIC RESPONSE **
+        // If the tool is not found, we send a detailed debug message back to the browser.
+        // We do not send the full URL for security, only the host information.
+        const dbHostInfo = process.env.DATABASE_URL ? process.env.DATABASE_URL.split('@')[1] : 'DATABASE_URL not set!';
 
-    // --- STEP 2: Get User Info ---
+        return { 
+            statusCode: 200, 
+            body: JSON.stringify({ 
+                hasAccess: false, 
+                reason: 'Tool not found in database.',
+                // This debug block will appear in your browser's Network tab
+                debug: {
+                    database_host: dbHostInfo,
+                    filename_searched: filename
+                }
+            }) 
+        };
+    }
+
+    // If the tool was found, proceed with the normal permission logic
+    const tool = toolResult.rows[0];
     const decodedToken = verifyToken(event.headers.authorization);
     let user = null;
     if (decodedToken) {
-        console.log(`Token is valid for user ID: ${decodedToken.userId}`);
         const userResult = await client.query('SELECT subscription_status, roles, permitted_tools FROM users WHERE id = $1', [decodedToken.userId]);
         if (userResult.rows.length > 0) {
             user = userResult.rows[0];
-            console.log("User found in database:", JSON.stringify(user));
-        } else {
-            console.warn(`User ID from token (${decodedToken.userId}) was not found in the database.`);
         }
-    } else {
-        console.log("No valid token provided. Treating as a logged-out user.");
     }
     client.release();
 
-    // --- STEP 3: The Permission Logic ---
     let hasAccess = false;
-    let reason = "Access denied by default.";
-    
     if (tool.access_level === 'free') {
         hasAccess = true;
-        reason = "Access granted: Tool is free.";
     } 
-    else if (user) { // Only proceed if a user is logged in
+    else if (user) {
         if (user.roles && user.roles.includes('admin')) {
             hasAccess = true;
-            reason = "Access granted: User is an admin.";
         }
         else if (tool.access_level === 'pro' && user.subscription_status === 'active') {
             hasAccess = true;
-            reason = "Access granted: User has an active subscription for a pro tool.";
         }
         else if (tool.access_level === 'custom' && user.permitted_tools && user.permitted_tools.includes(filename)) {
             hasAccess = true;
-            reason = "Access granted: User has specific permission for this custom tool.";
         }
     }
-
-    console.log(`FINAL DECISION: hasAccess = ${hasAccess}. Reason: ${reason}`);
     
     return { 
         statusCode: 200, 
