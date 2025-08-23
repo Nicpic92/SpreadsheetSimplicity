@@ -15,6 +15,9 @@ const verifyToken = (authHeader) => {
 };
 
 exports.handler = async (event) => {
+    // ADDED FOR DIAGNOSTICS: This will print the database URL to your terminal.
+    console.log("--- Connecting to DB:", process.env.DATABASE_URL);
+
     const { filename } = JSON.parse(event.body);
     console.log(`--- check-access invoked for filename: "${filename}" ---`);
 
@@ -32,6 +35,7 @@ exports.handler = async (event) => {
     if (toolResult.rows.length === 0) {
         client.release();
         console.warn(`DENYING ACCESS: Tool "${filename}" not found in the database.`);
+        // Return the specific reason for easier debugging on the frontend
         return { statusCode: 200, body: JSON.stringify({ hasAccess: false, reason: 'Tool not found in database.' }) };
     }
     const tool = toolResult.rows[0];
