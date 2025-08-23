@@ -16,6 +16,11 @@ const verifyToken = (authHeader) => {
 
 exports.handler = async (event) => {
     const { filename } = JSON.parse(event.body);
+
+    // --- DIAGNOSTIC LOGGING ---
+    // This will show us the exact filename being received from the browser.
+    console.log(`[DIAGNOSTIC] check-access function received request for filename: "${filename}"`);
+
     if (!filename) {
         return { statusCode: 400, body: JSON.stringify({ error: 'Filename is required.' }) };
     }
@@ -24,16 +29,17 @@ exports.handler = async (event) => {
     try {
         client = await pool.connect();
         
-        // --- THIS IS THE FIX ---
-        // Use LOWER() to make the query case-insensitive, ensuring a match.
         const toolResult = await client.query('SELECT access_level FROM tools WHERE LOWER(filename) = LOWER($1)', [filename]);
         
         if (toolResult.rows.length === 0) {
-            // This was the path being incorrectly taken before the fix.
+            // This is the error path you are currently hitting.
+            console.log(`[DIAGNOSTIC] Query found 0 tools matching "${filename}". Check database for exact match.`);
             return { statusCode: 200, body: JSON.stringify({ hasAccess: false, reason: 'Tool not found in database.' }) };
         }
         
         const tool = toolResult.rows[0];
+        console.log(`[DIAGNOSTIC] Found tool in database. Access level: "${tool.access_level}"`);
+
         const decodedToken = verifyToken(event.headers.authorization);
         let user = null;
         if (decodedToken) {
@@ -44,7 +50,6 @@ exports.handler = async (event) => {
         }
 
         let hasAccess = false;
-        // This logic is now reachable and will work correctly.
         if (tool.access_level === 'free') {
             hasAccess = true;
         } 
@@ -62,10 +67,11 @@ exports.handler = async (event) => {
             }
         }
         
+        console.log(`[DIAGNOSTIC] Final decision for "${filename}": hasAccess = ${hasAccess}`);
         return { statusCode: 200, body: JSON.stringify({ hasAccess }) };
 
     } catch (error) {
-        console.error('Check Access Error:', error);
+        console.error('Check Access CRITICAL Error:', error);
         return { statusCode: 500, body: JSON.stringify({ error: 'Internal Server Error' }) };
     } finally {
         if (client) client.release();
