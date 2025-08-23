@@ -45,7 +45,7 @@
                 <div class="pl-4">
                     <button id="login-button" class="bg-indigo-600 text-white font-semibold rounded-lg py-2 px-4 hover:bg-indigo-700">Log In</button>
                     <div id="user-profile" class="items-center space-x-4" style="display:none;">
-                        <span class="font-medium text-gray-700">Pro Member</span>
+                        <span id="user-email-display" class="font-medium text-gray-700"></span>
                         <button id="logout-button" class="text-gray-600 hover:text-indigo-600 font-medium">Log Out</button>
                     </div>
                 </div>
@@ -515,14 +515,14 @@
     <script type="module">
         import { updateAuthUI, protectPage, login, signup } from './auth.js';
 
-        // This is an IIFE (Immediately Invoked Function Expression)
-        // It ensures our functions run in the correct order.
+        // This IIFE (Immediately Invoked Function Expression) ensures
+        // that our async functions run in the correct, sequential order.
         (async () => {
-            // STEP 1: Always update the UI first. This function will also
-            // handle loading the user's profile if they are logged in.
+            // STEP 1: Update the header UI. This also fetches and caches the user's
+            // profile if they are logged in, which is crucial for the next step.
             await updateAuthUI();
 
-            // STEP 2: NOW that we know who the user is, protect the page.
+            // STEP 2: Now that the user profile is available, protect the page content.
             await protectPage();
         })();
 
