@@ -61,7 +61,7 @@
         </div>
     </div>
 
-    <main>
+    <main style="display:none;">
         <div class="bg-gray-700 text-white">
             <div class="container mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center">
                  <h1 class="text-2xl font-bold">XLSX Validator</h1>
@@ -512,14 +512,20 @@
     <!-- END: AUTHENTICATION MODAL -->
 
     <script type="module">
-        import { updateAuthUI, protectPage } from './auth.js';
-        updateAuthUI();
-        protectPage();
-    </script>
+        import { updateAuthUI, protectPage, login, signup } from './auth.js';
 
-    <script type="module">
-        import { login, signup } from './auth.js';
-        
+        // This is an IIFE (Immediately Invoked Function Expression)
+        // It ensures our functions run in the correct order.
+        (async () => {
+            // STEP 1: Always update the UI first. This function will also
+            // handle loading the user's profile if they are logged in.
+            await updateAuthUI();
+
+            // STEP 2: NOW that we know who the user is, protect the page.
+            await protectPage();
+        })();
+
+        // --- All the modal logic remains the same ---
         const modal = document.getElementById('auth-modal');
         const closeBtn = document.getElementById('auth-close-btn');
         if (closeBtn) closeBtn.addEventListener('click', () => { modal.style.display = 'none'; document.getElementById('auth-error').textContent = ''; });
