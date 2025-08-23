@@ -15,7 +15,8 @@ const verifyToken = (authHeader) => {
 };
 
 exports.handler = async (event) => {
-    // ADDED FOR DIAGNOSTICS: This will print the database URL to your terminal.
+    // THIS IS THE CRITICAL DIAGNOSTIC LINE:
+    // It will print the exact database URL your server is using to your terminal log.
     console.log("--- Connecting to DB:", process.env.DATABASE_URL);
 
     const { filename } = JSON.parse(event.body);
