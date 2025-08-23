@@ -50,7 +50,10 @@
     </main>
 
     <script type="module">
-        import { getToken, isAuthenticated, logout, getUser, handleSubscription } from './auth.js';
+        import { getToken, isAuthenticated, logout, getUser, handleSubscription, updateAuthUI } from './auth.js';
+
+        // This will handle showing the user email and wiring up the logout button.
+        updateAuthUI();
 
         // Protection: If user is not logged in, redirect them to the homepage.
         if (!isAuthenticated()) {
@@ -58,23 +61,17 @@
         }
 
         async function loadDashboard() {
-            const userProfileEl = document.getElementById('user-profile');
-            const userEmailDisplay = document.getElementById('user-email-display');
-            const logoutButton = document.getElementById('logout-button');
             const upgradeSection = document.getElementById('upgrade-section');
             const grid = document.getElementById('tools-grid');
             const proToolsList = document.getElementById('pro-tools-list');
             const loadingMessage = document.getElementById('loading-message');
 
             try {
+                // We still need the user object to check their subscription status
                 const user = await getUser();
-                if (user && user.email) {
-                     userProfileEl.style.display = 'flex';
-                     userEmailDisplay.textContent = user.email;
-                     logoutButton.addEventListener('click', logout);
-                }
-
-                if (user && user.subscription_status === 'free' && !(user.roles && user.roles.includes('admin'))) {
+                
+                // Show the upgrade section only for 'free' users (who are not also admins)
+                if (user && user.subscription_status === 'free' && !(user.roles && Array.isArray(user.roles) && user.roles.includes('admin'))) {
                     upgradeSection.style.display = 'block';
                     handleSubscription();
                 }
@@ -99,7 +96,6 @@
                         if (tool.access_level === 'pro') badge = '<span class="inline-block bg-indigo-100 text-indigo-800 text-sm font-semibold mt-2 px-3 py-1 rounded-full">Pro Tool</span>';
                         else if (tool.access_level === 'custom') badge = '<span class="inline-block bg-teal-100 text-teal-800 text-sm font-semibold mt-2 px-3 py-1 rounded-full">Custom Tool</span>';
                         
-                        // CORRECTED and most reliable link format
                         const card = `
                             <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col">
                                 <div class="flex-shrink-0">${tool.icon_svg || ''}<h4 class="text-2xl font-bold mt-4">${tool.display_name}</h4>${badge}</div>
