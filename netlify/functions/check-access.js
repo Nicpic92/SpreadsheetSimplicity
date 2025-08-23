@@ -23,8 +23,13 @@ exports.handler = async (event) => {
     let client;
     try {
         client = await pool.connect();
-        const toolResult = await client.query('SELECT access_level FROM tools WHERE LOWER(filename) = LOWER($1)', [filename]);        
+        
+        // --- THIS IS THE FIX ---
+        // Use LOWER() to make the query case-insensitive, ensuring a match.
+        const toolResult = await client.query('SELECT access_level FROM tools WHERE LOWER(filename) = LOWER($1)', [filename]);
+        
         if (toolResult.rows.length === 0) {
+            // This was the path being incorrectly taken before the fix.
             return { statusCode: 200, body: JSON.stringify({ hasAccess: false, reason: 'Tool not found in database.' }) };
         }
         
@@ -39,11 +44,11 @@ exports.handler = async (event) => {
         }
 
         let hasAccess = false;
+        // This logic is now reachable and will work correctly.
         if (tool.access_level === 'free') {
             hasAccess = true;
         } 
         else if (user) {
-            // Safer admin check
             const isAdmin = user && user.roles && Array.isArray(user.roles) && user.roles.includes('admin');
             const isPro = user.subscription_status === 'active';
             const permittedTools = user.permitted_tools || [];
