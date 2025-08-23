@@ -17,9 +17,7 @@ const verifyToken = (authHeader) => {
 exports.handler = async (event) => {
     const { filename } = JSON.parse(event.body);
 
-    // --- DIAGNOSTIC LOGGING ---
-    // This will show us the exact filename being received from the browser.
-    console.log(`[DIAGNOSTIC] check-access function received request for filename: "${filename}"`);
+    console.log(`[INFO] check-access function received request for filename: "${filename}"`);
 
     if (!filename) {
         return { statusCode: 400, body: JSON.stringify({ error: 'Filename is required.' }) };
@@ -32,13 +30,21 @@ exports.handler = async (event) => {
         const toolResult = await client.query('SELECT access_level FROM tools WHERE LOWER(filename) = LOWER($1)', [filename]);
         
         if (toolResult.rows.length === 0) {
-            // This is the error path you are currently hitting.
-            console.log(`[DIAGNOSTIC] Query found 0 tools matching "${filename}". Check database for exact match.`);
+            // --- ENHANCED LOGGING BLOCK ---
+            console.error(`[CRITICAL] Filename lookup failed for: "${filename}"`);
+            
+            // Query for ALL tool filenames in the database to see what's available.
+            const allToolsResult = await client.query('SELECT filename FROM tools');
+            const availableFilenames = allToolsResult.rows.map(row => row.filename);
+            
+            console.log('[DEBUG] Available filenames in the database are:', availableFilenames);
+            // --- END OF ENHANCED LOGGING ---
+
             return { statusCode: 200, body: JSON.stringify({ hasAccess: false, reason: 'Tool not found in database.' }) };
         }
         
         const tool = toolResult.rows[0];
-        console.log(`[DIAGNOSTIC] Found tool in database. Access level: "${tool.access_level}"`);
+        console.log(`[INFO] Found tool in database. Access level: "${tool.access_level}"`);
 
         const decodedToken = verifyToken(event.headers.authorization);
         let user = null;
@@ -67,7 +73,7 @@ exports.handler = async (event) => {
             }
         }
         
-        console.log(`[DIAGNOSTIC] Final decision for "${filename}": hasAccess = ${hasAccess}`);
+        console.log(`[INFO] Final decision for "${filename}": hasAccess = ${hasAccess}`);
         return { statusCode: 200, body: JSON.stringify({ hasAccess }) };
 
     } catch (error) {
