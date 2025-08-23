@@ -157,6 +157,7 @@ export async function protectPage() {
     // Get the full path from the URL (e.g., "/ExcelValidate.html")
     const path = window.location.pathname;
     
+    // --- THIS IS THE FIX ---
     // Extract the filename *exactly* as it is, with case and extension.
     const filename = path.substring(path.lastIndexOf('/') + 1);
 
@@ -195,15 +196,13 @@ export async function protectPage() {
     }
 }
 
+
 /**
  * Initiates the Stripe checkout process for subscriptions.
  */
 export async function handleSubscription() {
     const subscribeButton = document.getElementById('subscribe-button');
     if (!subscribeButton) return;
-
-    // NOTE: You will need to set this environment variable for this to work
-    const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY; 
     
     subscribeButton.addEventListener('click', async () => {
         subscribeButton.disabled = true;
@@ -217,8 +216,14 @@ export async function handleSubscription() {
 
             if (!response.ok) throw new Error('Could not create checkout session.');
 
-            const { sessionId } = await response.json();
-            const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+            const { sessionId, stripePublishableKey } = await response.json();
+            
+            // It's better to get the key from the backend to ensure it's the correct one (prod vs dev)
+            if (!stripePublishableKey) {
+                 throw new Error("Stripe publishable key not provided by the server.");
+            }
+
+            const stripe = Stripe(stripePublishableKey);
             await stripe.redirectToCheckout({ sessionId });
 
         } catch (error) {
