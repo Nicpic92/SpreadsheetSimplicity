@@ -149,29 +149,27 @@ export async function updateAuthUI() {
 
 /**
  * Protects a page by checking backend permissions before showing content.
- * This is the function that was corrected.
  */
 export async function protectPage() {
     const mainContent = document.querySelector('main');
     const accessDenied = document.getElementById('access-denied');
 
-    // --- THIS IS THE CORRECTED LOGIC ---
-    // 1. Get the full path from the URL (e.g., "/ExcelValidate.html")
     const path = window.location.pathname;
-    
-    // 2. Extract the filename *exactly* as it is, with case and extension.
     const filename = path.substring(path.lastIndexOf('/') + 1);
-    // --- END OF CORRECTED LOGIC ---
+
+    // --- THIS IS THE NEW DIAGNOSTIC ALERT ---
+    // This will force the browser to show us the filename it is about to send.
+    alert(`[DIAGNOSTIC] Filename being sent to backend: "${filename}"`);
+    // --- END DIAGNOSTIC ---
 
     try {
-        // 3. Send the UNALTERED filename to the backend.
         const response = await fetch('/.netlify/functions/check-access', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${getToken()}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ filename: filename }) // Send the correct filename
+            body: JSON.stringify({ filename: filename })
         });
 
         if (!response.ok) {
@@ -181,18 +179,15 @@ export async function protectPage() {
         const data = await response.json();
 
         if (data.hasAccess) {
-            // Access is granted, show the main tool content
             if (mainContent) mainContent.style.display = 'block'; 
             if (accessDenied) accessDenied.style.display = 'none';
         } else {
-            // Access is denied, show the "Access Denied" message
             if (mainContent) mainContent.style.display = 'none';
             if (accessDenied) accessDenied.style.display = 'block'; 
         }
 
     } catch (error) {
         console.error('CRITICAL ERROR during access check:', error);
-        // Fallback to denying access if the check fails for any reason
         if (mainContent) mainContent.style.display = 'none';
         if (accessDenied) accessDenied.style.display = 'block';
     }
