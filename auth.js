@@ -81,7 +81,11 @@ export function openAuthModal() {
   }
 }
 
-async function handleSubscription() {
+/**
+ * Attaches the Stripe checkout logic to the subscribe button.
+ * EXPORTED so the dashboard page can use it.
+ */
+export async function handleSubscription() {
   const subscribeButton = document.getElementById('subscribe-button');
   if (!subscribeButton) return;
 
@@ -114,13 +118,10 @@ export async function updateAuthUI() {
   const logoutButton = document.getElementById('logout-button');
   const upgradeSection = document.getElementById('upgrade-section');
 
-  // Always attach event listeners regardless of auth state
   if (loginButton) loginButton.addEventListener('click', openAuthModal);
   if (logoutButton) logoutButton.addEventListener('click', logout);
 
   if (isAuthenticated()) {
-    // STATE: User is logged in
-    // ACTION: Hide login button, show profile, check for upgrade section
     if (loginButton) loginButton.style.display = 'none';
     if (userProfileEl) userProfileEl.style.display = 'flex';
     
@@ -130,21 +131,43 @@ export async function updateAuthUI() {
     if (upgradeSection) {
       upgradeSection.style.display = isPro ? 'none' : 'block';
     }
-    handleSubscription();
+    // handleSubscription is now called from the specific pages that need it (Index and Dashboard)
+    if (document.getElementById('subscribe-button')) {
+        handleSubscription();
+    }
 
   } else {
-    // STATE: User is logged out
-    // ACTION: Explicitly show login button, hide profile and upgrade section
     if (loginButton) loginButton.style.display = 'block';
     if (userProfileEl) userProfileEl.style.display = 'none';
     if (upgradeSection) upgradeSection.style.display = 'none';
   }
 }
 
-
 // --- Page Protection Logic ---
+async function checkAccess() {
+    const filename = window.location.pathname.split('/').pop();
+    if (!filename || filename === 'index.html' || filename === 'about.html') return true;
+
+    try {
+        const response = await fetch('/.netlify/functions/check-access', {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${getToken()}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ filename })
+        });
+        if (!response.ok) return false;
+        const data = await response.json();
+        return data.hasAccess;
+    } catch (error) {
+        console.error("Error during access check:", error);
+        return false;
+    }
+}
+
 export async function protectPage() {
-    const hasAccess = await checkAccess(); // Assumes checkAccess function exists from previous steps
+    const hasAccess = await checkAccess();
 
     if (!hasAccess) {
         const mainContent = document.querySelector('main');
@@ -163,33 +186,5 @@ export async function protectPage() {
                 accessLoginButton.addEventListener('click', openAuthModal);
             }
         }
-    }
-}
-
-async function checkAccess() {
-    const filename = window.location.pathname.split('/').pop();
-    if (!filename || filename === 'index.html') return true; 
-
-    try {
-        const response = await fetch('/.netlify/functions/check-access', {
-            method: 'POST',
-            headers: { 
-                'Authorization': `Bearer ${getToken()}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ filename })
-        });
-
-        if (!response.ok) {
-            console.error("Access check failed:", await response.text());
-            return false;
-        }
-
-        const data = await response.json();
-        return data.hasAccess;
-
-    } catch (error) {
-        console.error("Error during access check:", error);
-        return false;
     }
 }
