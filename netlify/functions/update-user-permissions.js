@@ -6,7 +6,6 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// ... (copy the same verifyToken function here) ...
 const verifyToken = (authHeader) => {
   if (!authHeader) return null;
   const token = authHeader.split(' ')[1];
@@ -28,8 +27,13 @@ exports.handler = async (event) => {
 
   try {
     const client = await pool.connect();
+    
+    // Safer admin check
     const adminResult = await client.query('SELECT roles FROM users WHERE id = $1', [decodedToken.userId]);
-    if (adminResult.rows.length === 0 || !adminResult.rows[0].roles.includes('admin')) {
+    const user = adminResult.rows[0];
+    const isAdmin = user && user.roles && Array.isArray(user.roles) && user.roles.includes('admin');
+
+    if (adminResult.rows.length === 0 || !isAdmin) {
       client.release();
       return { statusCode: 403, body: JSON.stringify({ error: 'Forbidden: Admin access required' }) };
     }
